@@ -7,10 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export default function LoginPage() {
-  const [role, setRole] = React.useState('Admin');
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -37,21 +35,8 @@ export default function LoginPage() {
               </div>
               <Input id="password" type="password" required />
             </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <RadioGroup defaultValue="Admin" onValueChange={setRole} className="flex gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Admin" id="role-admin" />
-                  <Label htmlFor="role-admin">Admin</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Staff" id="role-staff" />
-                  <Label htmlFor="role-staff">Staff</Label>
-                </div>
-              </RadioGroup>
-            </div>
             <Button type="submit" className="w-full bg-accent hover:bg-accent/90" asChild>
-              <Link href={`/dashboard?role=${role}`}>Login</Link>
+              <Link href="/dashboard">Login</Link>
             </Button>
             <Button variant="outline" className="w-full">
               Login with Google

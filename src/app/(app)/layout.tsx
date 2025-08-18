@@ -10,6 +10,7 @@ import {
   LogOut,
   MessageSquare,
   PanelLeft,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +20,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -36,20 +39,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const role = searchParams.get('role') || 'Staff'; // Default to 'Staff' if no role
+  
+  // Adjusted to default to 'Staff' and update URL if 'role' is missing
+  const role = searchParams.get('role') || 'Staff'; 
 
   React.useEffect(() => {
-    if (!searchParams.has('role')) {
-      const newParams = new URLSearchParams(searchParams.toString());
-      newParams.set('role', 'Staff');
-      router.replace(`${pathname}?${newParams.toString()}`);
+    const params = new URLSearchParams(searchParams.toString());
+    if (!params.has('role')) {
+      params.set('role', 'Staff');
+      router.replace(`${pathname}?${params.toString()}`);
     }
-  }, [pathname, router, searchParams]);
+  }, [pathname, searchParams, router]);
+
+  const setRole = (newRole: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('role', newRole);
+    router.push(`${pathname}?${params.toString()}`);
+  }
 
   const navItems = allNavItems.filter(item => item.roles.includes(role));
 
   const createHrefWithRole = (href: string) => {
-    return `${href}?role=${role}`;
+    const params = new URLSearchParams(searchParams.toString());
+    return `${href}?${params.toString()}`;
   }
 
   return (
@@ -157,10 +169,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account ({role})</DropdownMenuLabel>
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuRadioGroup value={role} onValueChange={setRole}>
+                <DropdownMenuRadioItem value="Admin">Admin</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="Staff">Staff</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild><Link href="/">Logout</Link></DropdownMenuItem>
             </DropdownMenuContent>
