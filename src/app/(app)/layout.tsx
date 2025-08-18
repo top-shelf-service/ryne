@@ -8,6 +8,7 @@ import {
   CalendarDays,
   LayoutGrid,
   LogOut,
+  MessageSquare,
   PanelLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 const allNavItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Dashboard', roles: ['Admin', 'Staff'] },
   { href: '/schedules', icon: CalendarDays, label: 'Schedules', roles: ['Admin', 'Staff'] },
+  { href: '/messaging', icon: MessageSquare, label: 'Messages', roles: ['Admin', 'Staff'] },
   { href: '/schedule-assistant', icon: Bot, label: 'AI Assistant', roles: ['Admin'] },
 ];
 
@@ -109,7 +111,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="sm:max-w-xs">
-              <SheetHeader className="sr-only">
+              <SheetHeader>
                   <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
               <nav className="grid gap-6 text-lg font-medium">
