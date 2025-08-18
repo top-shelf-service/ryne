@@ -54,21 +54,11 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Clock size={20}/> Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <Button variant="outline"><PlusCircle className="mr-2" /> Request Time Off</Button>
-              <Button variant="outline"><PlusCircle className="mr-2" /> Find Open Shifts</Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
               <CardTitle className="flex items-center gap-2"><Megaphone size={20}/> Announcements</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {announcements.slice(0,1).map((announcement, index) => (
+                {announcements.slice(0,2).map((announcement, index) => (
                   <div key={index}>
                     <p className="font-semibold">{announcement.title}</p>
                     <p className="text-xs text-muted-foreground mb-1">{announcement.date}</p>
@@ -83,23 +73,6 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
-       <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Team Overview</CardTitle>
-             <CardDescription>A quick look at who's working today.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {[...Array(6)].map((_, i) => (
-               <div key={i} className="flex flex-col items-center text-center gap-2">
-                 <Image src={`https://placehold.co/80x80.png`} alt="Team member" width={80} height={80} className="rounded-full" data-ai-hint="person portrait" />
-                 <div className="text-sm">
-                   <p className="font-semibold">Person {i+1}</p>
-                   <p className="text-muted-foreground text-xs">9am - 5pm</p>
-                 </div>
-               </div>
-            ))}
-          </CardContent>
-        </Card>
     </>
   );
 }

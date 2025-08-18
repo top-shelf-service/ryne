@@ -6,12 +6,9 @@ import { usePathname } from 'next/navigation';
 import {
   Bot,
   CalendarDays,
-  CheckCircle2,
   LayoutGrid,
   LogOut,
   PanelLeft,
-  Settings,
-  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,9 +28,6 @@ const navItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Dashboard' },
   { href: '/schedules', icon: CalendarDays, label: 'Schedules' },
   { href: '/schedule-assistant', icon: Bot, label: 'AI Assistant' },
-  { href: '/approvals', icon: CheckCircle2, label: 'Approvals' },
-  { href: '/team', icon: Users, label: 'Team' },
-  { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
