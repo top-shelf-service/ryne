@@ -35,6 +35,21 @@ export default function LoginPage() {
     router.push('/dashboard');
   };
 
+  const handleForgotPassword = () => {
+    if (!email) {
+      toast({
+        variant: 'destructive',
+        title: 'Email Required',
+        description: 'Please enter your email address to reset your password.',
+      });
+      return;
+    }
+    toast({
+      title: 'Password Reset',
+      description: `Password reset instructions have been sent to ${email}.`,
+    });
+  };
+
 
   return (
     <Card className="w-full max-w-md shadow-lg">
@@ -54,7 +69,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <div className="flex items-center">
               <Label htmlFor="password">Password</Label>
-               <span className="ml-auto inline-block text-sm text-muted-foreground/50 cursor-not-allowed">
+               <span onClick={handleForgotPassword} className="ml-auto inline-block text-sm text-muted-foreground/50 cursor-pointer hover:underline">
                 Forgot your password?
               </span>
             </div>
