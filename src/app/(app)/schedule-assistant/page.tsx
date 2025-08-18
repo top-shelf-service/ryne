@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Bot, Loader2, Sparkles } from 'lucide-react';
+import { Bot, Loader2, Sparkles, ShieldAlert } from 'lucide-react';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { generateScheduleAction } from './actions';
 import type { SuggestScheduleOutput } from '@/ai/flows/suggest-schedule';
 import { useToast } from '@/hooks/use-toast';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const FormSchema = z.object({
   employeeAvailability: z.string().min(1, 'Employee availability is required.'),
@@ -55,6 +56,9 @@ export default function ScheduleAssistantPage() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [suggestion, setSuggestion] = React.useState<SuggestScheduleOutput | null>(null);
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const role = searchParams.get('role');
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -65,6 +69,28 @@ export default function ScheduleAssistantPage() {
       scheduleRequirements: 'Prioritize full-day shifts for experienced staff (e.g., Bob).',
     },
   });
+
+  React.useEffect(() => {
+    if (role === 'Staff') {
+      const dashboardUrl = `/dashboard?role=Staff`;
+      router.push(dashboardUrl);
+      toast({
+        variant: 'destructive',
+        title: 'Access Denied',
+        description: 'You do not have permission to access the AI Schedule Assistant.',
+      });
+    }
+  }, [role, router, toast]);
+
+  if (role === 'Staff') {
+     return (
+        <div className="flex flex-col items-center justify-center h-full min-h-[60vh] p-8 text-center bg-card rounded-lg border border-dashed">
+            <ShieldAlert className="h-16 w-16 mb-4 text-destructive" />
+            <h3 className="text-2xl font-bold tracking-tight">Access Denied</h3>
+            <p className="text-sm text-muted-foreground">Redirecting you to the dashboard...</p>
+        </div>
+      );
+  }
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsLoading(true);
