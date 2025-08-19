@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Bot, Loader2, Sparkles, ShieldAlert } from 'lucide-react';
+import { Bot, Loader2, Sparkles, ShieldAlert, Calculator } from 'lucide-react';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { generateScheduleAction } from './actions';
 import type { SuggestScheduleOutput } from '@/ai/flows/suggest-schedule';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { PayCalculator } from '@/components/pay-calculator';
 
 const FormSchema = z.object({
   employeeAvailability: z.string().min(1, 'Employee availability is required.'),
@@ -115,10 +116,10 @@ export default function ScheduleAssistantPage() {
     <>
       <PageHeader
         title="AI Schedule Assistant"
-        description="Generate optimal schedules based on availability, rules, and workload."
+        description="Generate optimal schedules and perform quick pay calculations."
       />
       <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-8">
           <Card>
             <CardHeader>
               <CardTitle>Scheduling Parameters</CardTitle>
@@ -194,6 +195,7 @@ export default function ScheduleAssistantPage() {
               </Form>
             </CardContent>
           </Card>
+          <PayCalculator />
         </div>
         <div className="lg:col-span-2">
           {isLoading && (

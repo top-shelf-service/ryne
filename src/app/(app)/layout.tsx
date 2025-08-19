@@ -37,11 +37,11 @@ import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const allNavItems = [
-  { href: '/dashboard', icon: LayoutGrid, label: 'Dashboard', roles: ['Admin', 'Staff'] },
-  { href: '/schedules', icon: CalendarDays, label: 'Schedules', roles: ['Admin', 'Staff'] },
-  { href: '/pay-history', icon: History, label: 'Pay History', roles: ['Admin', 'Staff'] },
-  { href: '/messaging', icon: MessageSquare, label: 'Messages', roles: ['Admin', 'Staff'] },
-  { href: '/schedule-assistant', icon: Bot, label: 'AI Assistant', roles: ['Admin'] },
+  { href: '/dashboard', icon: LayoutGrid, label: 'Dashboard', roles: ['Admin', 'Manager', 'Staff'] },
+  { href: '/schedules', icon: CalendarDays, label: 'Schedules', roles: ['Admin', 'Manager', 'Staff'] },
+  { href: '/pay-history', icon: History, label: 'Pay History', roles: ['Admin', 'Manager', 'Staff'] },
+  { href: '/messaging', icon: MessageSquare, label: 'Messages', roles: ['Admin', 'Manager', 'Staff'] },
+  { href: '/schedule-assistant', icon: Bot, label: 'AI Assistant', roles: ['Admin', 'Manager'] },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -174,7 +174,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
                 <Avatar>
                   <AvatarImage src="https://placehold.co/32x32.png" alt="@shadcn" />
-                  <AvatarFallback>{role === 'Admin' ? 'AD' : 'ST'}</AvatarFallback>
+                  <AvatarFallback>{role === 'Admin' ? 'AD' : role === 'Manager' ? 'MG' : 'ST'}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
@@ -183,6 +183,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenuSeparator />
               <DropdownMenuRadioGroup value={role} onValueChange={setRole}>
                 <DropdownMenuRadioItem value="Admin">Admin</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="Manager">Manager</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="Staff">Staff</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
@@ -212,5 +213,3 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-    
