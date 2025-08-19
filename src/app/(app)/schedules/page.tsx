@@ -32,9 +32,10 @@ export default function SchedulesPage() {
   }
   
   const selectedDayShifts = allShifts.filter(shift => 
-    shift.date.getDate() === date?.getDate() &&
-    shift.date.getMonth() === date?.getMonth() &&
-    shift.date.getFullYear() === date?.getFullYear()
+    date &&
+    shift.date.getDate() === date.getDate() &&
+    shift.date.getMonth() === date.getMonth() &&
+    shift.date.getFullYear() === date.getFullYear()
   );
 
   return (
@@ -93,8 +94,8 @@ export default function SchedulesPage() {
            <Card className="min-h-[425px]">
               <CardHeader>
                 <CardTitle>
-                  {role === 'Admin' ? `Shifts for ${date?.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}` : "Your Upcoming Shifts"}
-                </Title>
+                  {role === 'Admin' && date ? `Shifts for ${date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}` : "Your Upcoming Shifts"}
+                </CardTitle>
                 <CardDescription>
                    {role === 'Admin' ? `There are ${selectedDayShifts.length} shifts scheduled.` : "Here are your next three shifts."}
                 </CardDescription>
