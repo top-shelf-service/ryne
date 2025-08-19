@@ -86,6 +86,12 @@ export default function SchedulesPage() {
                             </Label>
                             <Input id="username" value="9:00 AM - 5:00 PM" className="col-span-3" />
                         </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="role" className="text-right">
+                            Role
+                            </Label>
+                            <Input id="role" value="Cashier" className="col-span-3" />
+                        </div>
                     </div>
                     <DialogFooter>
                     <Button type="submit" onClick={() => setIsAddShiftOpen(false)}>Save changes</Button>
