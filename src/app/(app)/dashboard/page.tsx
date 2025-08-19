@@ -4,19 +4,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
-import { Megaphone } from "lucide-react";
+import { Megaphone, Clock } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import * as React from 'react';
 
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const role = searchParams.get('role') || 'Staff';
   const name = role === 'Admin' ? 'Admin' : 'Staff Member';
+  
+  const [clockedInShift, setClockedInShift] = React.useState<number | null>(null);
 
   const upcomingShifts = [
-    { day: "Today", date: "June 24", time: "9:00 AM - 5:00 PM", role: "Cashier" },
-    { day: "Tomorrow", date: "June 25", time: "11:00 AM - 7:00 PM", role: "Barista" },
-    { day: "Wednesday", date: "June 26", time: "9:00 AM - 3:00 PM", role: "Cashier" },
+    { id: 1, day: "Today", date: "June 24", time: "9:00 AM - 5:00 PM", role: "Cashier" },
+    { id: 2, day: "Tomorrow", date: "June 25", time: "11:00 AM - 7:00 PM", role: "Barista" },
+    { id: 3, day: "Wednesday", date: "June 26", time: "9:00 AM - 3:00 PM", role: "Cashier" },
   ];
 
   const announcements = [
@@ -26,6 +29,23 @@ export default function DashboardPage() {
   
   const createHrefWithRole = (href: string) => {
     return `${href}?role=${role}`;
+  }
+
+  const handleClockInOut = (shiftId: number) => {
+    if (clockedInShift === shiftId) {
+      setClockedInShift(null); // Clock out
+    } else {
+      setClockedInShift(shiftId); // Clock in
+    }
+  };
+
+  const isClockInDisabled = (shift: typeof upcomingShifts[0]) => {
+    if (role === 'Admin') return false;
+    // For staff, disable if it's not today's shift or another shift is active
+    if (shift.day !== 'Today' || (clockedInShift !== null && clockedInShift !== shift.id)) {
+      return true;
+    }
+    return false;
   }
 
   return (
@@ -40,8 +60,8 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {upcomingShifts.map((shift, index) => (
-                <div key={index} className="flex items-center p-4 bg-muted/50 rounded-lg">
+              {upcomingShifts.map((shift) => (
+                <div key={shift.id} className="flex items-center p-4 bg-muted/50 rounded-lg">
                   <div className="flex flex-col items-center justify-center h-16 w-16 bg-primary/10 text-primary rounded-lg mr-4">
                     <span className="text-sm font-medium">{shift.day}</span>
                     <span className="text-xs text-primary/80">{shift.date}</span>
@@ -50,16 +70,15 @@ export default function DashboardPage() {
                     <p className="font-semibold">{shift.time}</p>
                     <p className="text-sm text-muted-foreground">{shift.role}</p>
                   </div>
-                  {role === 'Staff' && (
-                    <Button variant="outline" size="sm" disabled>
-                      Clock In
-                    </Button>
-                  )}
-                   {role === 'Admin' && (
-                    <Button variant="outline" size="sm">
-                      Clock In
-                    </Button>
-                  )}
+                  <Button 
+                    variant={clockedInShift === shift.id ? "destructive" : "outline"} 
+                    size="sm"
+                    onClick={() => handleClockInOut(shift.id)}
+                    disabled={isClockInDisabled(shift)}
+                  >
+                    <Clock className="mr-2 h-4 w-4" />
+                    {clockedInShift === shift.id ? 'Clock Out' : 'Clock In'}
+                  </Button>
                 </div>
               ))}
             </div>
