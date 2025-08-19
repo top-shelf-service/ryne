@@ -11,12 +11,12 @@ import { Badge } from '@/components/ui/badge';
 import { PlusCircle, UserPlus, Bell } from 'lucide-react';
 
 const allShifts = [
-  { id: 1, employee: 'Alice', date: new Date(2024, 5, 24), time: '9:00 AM - 5:00 PM', role: 'Cashier', status: 'Confirmed' },
-  { id: 2, employee: 'Bob', date: new Date(2024, 5, 24), time: '11:00 AM - 7:00 PM', role: 'Barista', status: 'Confirmed' },
-  { id: 3, employee: 'Alice', date: new Date(2024, 5, 25), time: '9:00 AM - 3:00 PM', role: 'Cashier', status: 'Confirmed' },
-  { id: 4, employee: 'Charlie', date: new Date(2024, 5, 25), time: '1:00 PM - 9:00 PM', role: 'Barista', status: 'Pending' },
-  { id: 5, employee: 'Bob', date: new Date(2024, 5, 26), time: '11:00 AM - 7:00 PM', role: 'Barista', status: 'Confirmed' },
-  { id: 6, employee: 'Alice', date: new Date(2024, 5, 27), time: '9:00 AM - 5:00 PM', role: 'Cashier', status: 'Confirmed' },
+  { id: 1, employee: 'Alice', date: new Date(2024, 5, 24), time: '9:00 AM - 5:00 PM', role: 'Cashier', status: 'Confirmed', break: '12:30 PM - 1:00 PM' },
+  { id: 2, employee: 'Bob', date: new Date(2024, 5, 24), time: '11:00 AM - 7:00 PM', role: 'Barista', status: 'Confirmed', break: '2:00 PM - 2:30 PM' },
+  { id: 3, employee: 'Alice', date: new Date(2024, 5, 25), time: '9:00 AM - 3:00 PM', role: 'Cashier', status: 'Confirmed', break: '12:00 PM - 12:30 PM' },
+  { id: 4, employee: 'Charlie', date: new Date(2024, 5, 25), time: '1:00 PM - 9:00 PM', role: 'Barista', status: 'Pending', break: '4:00 PM - 4:30 PM' },
+  { id: 5, employee: 'Bob', date: new Date(2024, 5, 26), time: '11:00 AM - 7:00 PM', role: 'Barista', status: 'Confirmed', break: '2:00 PM - 2:30 PM' },
+  { id: 6, employee: 'Alice', date: new Date(2024, 5, 27), time: '9:00 AM - 5:00 PM', role: 'Cashier', status: 'Confirmed', break: '12:30 PM - 1:00 PM' },
 ];
 
 const staffShifts = allShifts.filter(shift => shift.employee === 'Alice').slice(0, 3);
@@ -94,7 +94,7 @@ export default function SchedulesPage() {
               <CardHeader>
                 <CardTitle>
                   {role === 'Admin' ? `Shifts for ${date?.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}` : "Your Upcoming Shifts"}
-                </CardTitle>
+                </Title>
                 <CardDescription>
                    {role === 'Admin' ? `There are ${selectedDayShifts.length} shifts scheduled.` : "Here are your next three shifts."}
                 </CardDescription>
@@ -106,6 +106,7 @@ export default function SchedulesPage() {
                       <div className="flex-grow">
                         <p className="font-semibold">{shift.employee} <span className="text-sm text-muted-foreground font-normal">as {shift.role}</span></p>
                         <p className="text-sm">{shift.time}</p>
+                        <p className="text-xs text-muted-foreground/80 mt-1">Break: {shift.break}</p>
                       </div>
                       <Badge variant={shift.status === 'Confirmed' ? 'secondary' : 'default'} className={shift.status === 'Pending' ? "bg-amber-500 text-white" : ""}>
                         {shift.status}

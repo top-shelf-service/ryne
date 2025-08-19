@@ -18,9 +18,9 @@ export default function DashboardPage() {
   const [onBreak, setOnBreak] = React.useState(false);
 
   const upcomingShifts = [
-    { id: 1, day: "Today", date: "June 24", time: "9:00 AM - 5:00 PM", role: "Cashier" },
-    { id: 2, day: "Tomorrow", date: "June 25", time: "11:00 AM - 7:00 PM", role: "Barista" },
-    { id: 3, day: "Wednesday", date: "June 26", time: "9:00 AM - 3:00 PM", role: "Cashier" },
+    { id: 1, day: "Today", date: "June 24", time: "9:00 AM - 5:00 PM", role: "Cashier", break: "12:30 PM - 1:00 PM" },
+    { id: 2, day: "Tomorrow", date: "June 25", time: "11:00 AM - 7:00 PM", role: "Barista", break: "2:00 PM - 2:30 PM" },
+    { id: 3, day: "Wednesday", date: "June 26", time: "9:00 AM - 3:00 PM", role: "Cashier", break: "12:00 PM - 12:30 PM" },
   ];
 
   const announcements = [
@@ -75,6 +75,7 @@ export default function DashboardPage() {
                   <div className="flex-grow">
                     <p className="font-semibold">{shift.time}</p>
                     <p className="text-sm text-muted-foreground">{shift.role}</p>
+                    <p className="text-xs text-muted-foreground/80 mt-1">Break: {shift.break}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {clockedInShift === shift.id && (
