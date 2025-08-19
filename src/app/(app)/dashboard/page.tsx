@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
-import { Megaphone, Clock } from "lucide-react";
+import { Megaphone, Clock, Coffee } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import * as React from 'react';
@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const name = role === 'Admin' ? 'Admin' : 'Staff Member';
   
   const [clockedInShift, setClockedInShift] = React.useState<number | null>(null);
+  const [onBreak, setOnBreak] = React.useState(false);
 
   const upcomingShifts = [
     { id: 1, day: "Today", date: "June 24", time: "9:00 AM - 5:00 PM", role: "Cashier" },
@@ -34,9 +35,14 @@ export default function DashboardPage() {
   const handleClockInOut = (shiftId: number) => {
     if (clockedInShift === shiftId) {
       setClockedInShift(null); // Clock out
+      setOnBreak(false); // Ensure break is ended on clock out
     } else {
       setClockedInShift(shiftId); // Clock in
     }
+  };
+  
+  const handleBreak = () => {
+    setOnBreak(prevState => !prevState);
   };
 
   const isClockInDisabled = (shift: typeof upcomingShifts[0]) => {
@@ -70,15 +76,27 @@ export default function DashboardPage() {
                     <p className="font-semibold">{shift.time}</p>
                     <p className="text-sm text-muted-foreground">{shift.role}</p>
                   </div>
-                  <Button 
-                    variant={clockedInShift === shift.id ? "destructive" : "outline"} 
-                    size="sm"
-                    onClick={() => handleClockInOut(shift.id)}
-                    disabled={isClockInDisabled(shift)}
-                  >
-                    <Clock className="mr-2 h-4 w-4" />
-                    {clockedInShift === shift.id ? 'Clock Out' : 'Clock In'}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {clockedInShift === shift.id && (
+                      <Button
+                        variant={onBreak ? "default" : "outline"}
+                        size="sm"
+                        onClick={handleBreak}
+                      >
+                        <Coffee className="mr-2 h-4 w-4" />
+                        {onBreak ? 'End Break' : 'Start Break'}
+                      </Button>
+                    )}
+                    <Button 
+                      variant={clockedInShift === shift.id ? "destructive" : "outline"} 
+                      size="sm"
+                      onClick={() => handleClockInOut(shift.id)}
+                      disabled={isClockInDisabled(shift) || (onBreak && clockedInShift === shift.id)}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      {clockedInShift === shift.id ? 'Clock Out' : 'Clock In'}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
