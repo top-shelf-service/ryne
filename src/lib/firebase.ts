@@ -8,7 +8,7 @@ const firebaseConfig = {
   authDomain: "shyft-xphli.firebaseapp.com",
   databaseURL: "https://shyft-xphli-default-rtdb.firebaseio.com",
   projectId: "shyft-xphli",
-  storageBucket: "shyft-xphli.firebasestorage.app",
+  storageBucket: "shyft-xphli.appspot.com",
   messagingSenderId: "182080370256",
   appId: "1:182080370256:web:92042e2eb8a90064228355"
 };

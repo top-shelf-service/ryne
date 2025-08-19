@@ -21,8 +21,17 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+type Shift = {
+  id: number;
+  employee: string;
+  date: Date;
+  time: string;
+  role: string;
+  status: string;
+  break: string;
+};
 
-const allShifts = [
+const allShifts: Shift[] = [
   { id: 1, employee: 'Alice', date: new Date(2024, 5, 24), time: '9:00 AM - 5:00 PM', role: 'Cashier', status: 'Confirmed', break: '12:30 PM - 1:00 PM' },
   { id: 2, employee: 'Bob', date: new Date(2024, 5, 24), time: '11:00 AM - 7:00 PM', role: 'Barista', status: 'Confirmed', break: '2:00 PM - 2:30 PM' },
   { id: 3, employee: 'Alice', date: new Date(2024, 5, 25), time: '9:00 AM - 3:00 PM', role: 'Cashier', status: 'Confirmed', break: '12:00 PM - 12:30 PM' },
@@ -39,6 +48,8 @@ export default function SchedulesPage() {
   const role = searchParams.get('role') || 'Staff';
   const [date, setDate] = React.useState<Date | undefined>(new Date(2024, 5, 24));
   const [isAddShiftOpen, setIsAddShiftOpen] = React.useState(false);
+  const [isEditShiftOpen, setIsEditShiftOpen] = React.useState(false);
+  const [selectedShift, setSelectedShift] = React.useState<Shift | null>(null);
 
   const createHrefWithRole = (href: string) => {
     return `${href}?role=${role}`;
@@ -51,8 +62,13 @@ export default function SchedulesPage() {
     shift.date.getFullYear() === date.getFullYear()
   );
 
+  const handleEditClick = (shift: Shift) => {
+    setSelectedShift(shift);
+    setIsEditShiftOpen(true);
+  }
+
   return (
-    <div>
+    <>
       <PageHeader
         title="Schedules"
         description={role === 'Admin' ? "Plan and manage schedules for your team." : "View your upcoming shifts."}
@@ -161,7 +177,7 @@ export default function SchedulesPage() {
                         {shift.status}
                       </Badge>
                        {role === 'Admin' && (
-                        <Button variant="ghost" size="sm" className="ml-4" onClick={() => console.log(`Edit shift ${shift.id}`)}>Edit</Button>
+                        <Button variant="ghost" size="sm" className="ml-4" onClick={() => handleEditClick(shift)}>Edit</Button>
                       )}
                     </div>
                   ))}
@@ -175,6 +191,47 @@ export default function SchedulesPage() {
            </Card>
         </div>
       </div>
-    </div>
+       <Dialog open={isEditShiftOpen} onOpenChange={setIsEditShiftOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Shift</DialogTitle>
+              <DialogDescription>
+                Modify the details for {selectedShift?.employee}'s shift.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedShift && (
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-employee" className="text-right">
+                    Employee
+                  </Label>
+                  <Input id="edit-employee" defaultValue={selectedShift.employee} className="col-span-3" readOnly />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-time" className="text-right">
+                    Time
+                  </Label>
+                  <Input id="edit-time" defaultValue={selectedShift.time} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-break" className="text-right">
+                    Break
+                  </Label>
+                  <Input id="edit-break" defaultValue={selectedShift.break} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-role" className="text-right">
+                    Role
+                  </Label>
+                  <Input id="edit-role" defaultValue={selectedShift.role} className="col-span-3" />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="submit" onClick={() => setIsEditShiftOpen(false)}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+    </>
   );
 }
