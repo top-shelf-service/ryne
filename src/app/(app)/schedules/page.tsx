@@ -9,6 +9,18 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PlusCircle, UserPlus, Bell } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+
 
 const allShifts = [
   { id: 1, employee: 'Alice', date: new Date(2024, 5, 24), time: '9:00 AM - 5:00 PM', role: 'Cashier', status: 'Confirmed', break: '12:30 PM - 1:00 PM' },
@@ -26,6 +38,7 @@ export default function SchedulesPage() {
   const searchParams = useSearchParams();
   const role = searchParams.get('role') || 'Staff';
   const [date, setDate] = React.useState<Date | undefined>(new Date(2024, 5, 24));
+  const [isAddShiftOpen, setIsAddShiftOpen] = React.useState(false);
 
   const createHrefWithRole = (href: string) => {
     return `${href}?role=${role}`;
@@ -46,15 +59,44 @@ export default function SchedulesPage() {
       >
         {role === 'Admin' && (
            <div className="flex gap-2">
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Shift
-            </Button>
-             <Button variant="outline">
+             <Dialog open={isAddShiftOpen} onOpenChange={setIsAddShiftOpen}>
+                <DialogTrigger asChild>
+                    <Button>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add Shift
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                    <DialogTitle>Add New Shift</DialogTitle>
+                    <DialogDescription>
+                        Fill in the details below to add a new shift to the schedule.
+                    </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name" className="text-right">
+                            Employee
+                            </Label>
+                            <Input id="name" value="Alice" className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="username" className="text-right">
+                            Time
+                            </Label>
+                            <Input id="username" value="9:00 AM - 5:00 PM" className="col-span-3" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                    <Button type="submit" onClick={() => setIsAddShiftOpen(false)}>Save changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+             <Button variant="outline" onClick={() => console.log('Manage Requests clicked')}>
                <Bell className="mr-2 h-4 w-4" />
                Manage Requests
              </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => console.log('Add User clicked')}>
               <UserPlus className="mr-2 h-4 w-4" />
               Add User
             </Button>
@@ -113,7 +155,7 @@ export default function SchedulesPage() {
                         {shift.status}
                       </Badge>
                        {role === 'Admin' && (
-                        <Button variant="ghost" size="sm" className="ml-4">Edit</Button>
+                        <Button variant="ghost" size="sm" className="ml-4" onClick={() => console.log(`Edit shift ${shift.id}`)}>Edit</Button>
                       )}
                     </div>
                   ))}
