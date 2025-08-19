@@ -13,6 +13,7 @@ import {
   Users,
   Moon,
   Sun,
+  History,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 const allNavItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Dashboard', roles: ['Admin', 'Staff'] },
   { href: '/schedules', icon: CalendarDays, label: 'Schedules', roles: ['Admin', 'Staff'] },
+  { href: '/pay-history', icon: History, label: 'Pay History', roles: ['Admin', 'Staff'] },
   { href: '/messaging', icon: MessageSquare, label: 'Messages', roles: ['Admin', 'Staff'] },
   { href: '/schedule-assistant', icon: Bot, label: 'AI Assistant', roles: ['Admin'] },
 ];
@@ -210,3 +212,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+    
