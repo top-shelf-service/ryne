@@ -1,3 +1,4 @@
+# .github/workflows/ci.yml
 name: CI
 
 on:
@@ -9,16 +10,18 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Use Node
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20.x
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      # Client build
+      # ---------- Client ----------
       - name: Install client deps
         working-directory: client
         run: npm ci
@@ -27,7 +30,7 @@ jobs:
         working-directory: client
         run: npm run build
 
-      # Server type-check + smoke boot
+      # ---------- Server ----------
       - name: Install server deps
         working-directory: server
         run: npm ci
@@ -36,12 +39,17 @@ jobs:
         working-directory: server
         run: npx tsc --noEmit
 
-      # Optional: ensure index imports resolve (no secrets needed)
-      - name: Smoke import server
+      - name: Build server (tsc → dist/)
+        working-directory: server
+        run: npx tsc
+
+      # Smoke import compiled server entry to ensure ESM deps resolve.
+      # We pass dummy env to avoid real Firebase/Admin initialization.
+      - name: Smoke import server (compiled JS)
         working-directory: server
         env:
-          # Provide dummy env so dotenv loads but Firebase isn't initialized
+          NODE_ENV: ci
           FIREBASE_SERVICE_ACCOUNT_JSON: '{"type":"service_account","project_id":"dummy","private_key_id":"x","private_key":"-----BEGIN PRIVATE KEY-----\nMIIB\n-----END PRIVATE KEY-----\n","client_email":"dummy@dummy.iam.gserviceaccount.com","client_id":"0","token_uri":"https://oauth2.googleapis.com/token"}'
           FIREBASE_STORAGE_BUCKET: dummy.appspot.com
         run: |
-          node -e "import('./src/index.ts').then(()=>console.log('ok')).catch(e=>{console.error(e);process.exit(1)})"
+          node -e "import('./dist/index.js').then(()=>console.log('ok')).catch(e=>{console.error(e);process.exit(1)})"
