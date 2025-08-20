@@ -1,15 +1,34 @@
+// server/tsconfig.json
 {
   "compilerOptions": {
+    /* Emit */
+    "outDir": "dist",
+    "declaration": false,
+    "sourceMap": false,
+    "inlineSources": false,
+    "noEmitOnError": true,
+
+    /* Language & Module Resolution for Node 20 ESM */
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "outDir": "dist",
-    "rootDir": "src",
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "forceConsistentCasingInFileNames": true,
+
+    /* Strictness */
+    "strict": true,
+
+    /* Paths (optional; uncomment & adjust if you use aliases)
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+    */
   },
-  "include": ["src"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
