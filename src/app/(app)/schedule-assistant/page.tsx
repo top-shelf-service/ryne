@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Bot, Loader2, Sparkles, ShieldAlert, Calculator } from 'lucide-react';
+import { Bot, Loader2, Sparkles, ShieldAlert, BarChart3, TrendingUp, FileText, Banknote } from 'lucide-react';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,45 +15,42 @@ import { generateScheduleAction } from './actions';
 import type { SuggestScheduleOutput } from '@/ai/flows/suggest-schedule';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { PayCalculator } from '@/components/pay-calculator';
 
 export const dynamic = 'force-dynamic';
 
 const FormSchema = z.object({
-  employeeAvailability: z.string().min(1, 'Employee availability is required.'),
-  complianceRules: z.string().min(1, 'Compliance rules are required.'),
-  predictedWorkload: z.string().min(1, 'Predicted workload is required.'),
-  scheduleRequirements: z.string().min(1, 'Schedule requirements are required.'),
+  employeeData: z.string().min(1, 'Employee data is required.'),
+  demandForecast: z.string().min(1, 'Demand forecast is required.'),
+  coverageNeeds: z.string().min(1, 'Coverage needs are required.'),
+  companyPolicies: z.string().min(1, 'Company policies are required.'),
+  scheduleRequirements: z.string().min(1, 'Specific requirements are required.'),
 });
 
-const placeholderAvailability = JSON.stringify(
+const placeholderEmployeeData = JSON.stringify(
   [
-    { "employeeId": "E1", "name": "Alice", "age": 25, "availableSlots": ["Mon-AM", "Tue-PM", "Wed-AM"] },
-    { "employeeId": "E2", "name": "Bob", "age": 42, "availableSlots": ["Mon-PM", "Wed-AM", "Thu-FULL"] },
-    { "employeeId": "E3", "name": "Charlie", "age": 19, "availableSlots": ["Mon-AM", "Tue-AM", "Wed-PM"] }
+    { "name": "Alice", "age": 25, "wageRate": 20, "skillLevel": "Experienced", "availability": "Mon-AM, Tue-PM, Wed-AM", "preferredShifts": "AM", "timeOffRequests": [], "temporaryAvailabilityChanges": "" },
+    { "name": "Bob", "age": 42, "wageRate": 25, "skillLevel": "Manager", "availability": "Mon-PM, Wed-AM, Thu-FULL", "preferredShifts": "Any", "timeOffRequests": [], "temporaryAvailabilityChanges": "" },
+    { "name": "Charlie", "age": 19, "wageRate": 18, "skillLevel": "Novice", "availability": "Mon-AM, Tue-AM, Wed-PM", "preferredShifts": "AM", "timeOffRequests": ["2024-07-04"], "temporaryAvailabilityChanges": "" },
+    { "name": "Diana", "age": 18, "wageRate": 18, "skillLevel": "Novice", "availability": "Fri-PM, Sat-FULL, Sun-FULL", "preferredShifts": "Weekend", "timeOffRequests": [], "temporaryAvailabilityChanges": "Unavailable Tue-AM for class" }
   ],
   null,
   2
 );
 
-const placeholderCompliance = JSON.stringify(
-  {
-    maxHoursPerWeek: 40,
-    minRestBetweenShifts: 8,
-  },
-  null,
-  2
+const placeholderDemandForecast = JSON.stringify(
+  { "historicalData": "Low traffic Mon-AM, high traffic Fri-PM", "salesTrends": "Weekend sales are 50% higher", "predictedNeeds": "Need extra staff for weekend promotion" }, null, 2
 );
 
-const placeholderWorkload = JSON.stringify(
+const placeholderCoverageNeeds = JSON.stringify(
   {
-    'Mon-AM': { requiredStaff: 1, role: "Bartender" },
-    'Mon-PM': { requiredStaff: 1, role: "Server" },
-    'Tue-AM': { requiredStaff: 1, role: "Cashier" },
-    'Tue-PM': { requiredStaff: 1, role: "Server" },
-  },
-  null,
-  2
+    "Mon-AM": { "requiredStaff": 1, "role": "Bartender", "minSkill": "Novice" },
+    "Mon-PM": { "requiredStaff": 2, "role": "Server", "minSkill": "Novice" },
+    "Fri-PM": { "requiredStaff": 3, "role": "Server", "minSkill": "Experienced" }
+  }, null, 2
+);
+
+const placeholderCompanyPolicies = JSON.stringify(
+  { "maxHoursPerWeek": 40, "minRestBetweenShifts": 8, "overtime": "Discouraged, requires manager approval", "shiftAssignment": "Preferences considered, but coverage is priority", "workloadDistribution": "Aim for balanced hours over a 2-week period" }, null, 2
 );
 
 export default function ScheduleAssistantPage() {
@@ -67,10 +64,11 @@ export default function ScheduleAssistantPage() {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      employeeAvailability: placeholderAvailability,
-      complianceRules: placeholderCompliance,
-      predictedWorkload: placeholderWorkload,
-      scheduleRequirements: 'The Bartender role requires the employee to be 21 or older. Prioritize full-day shifts for experienced staff (e.g., Bob).',
+      employeeData: placeholderEmployeeData,
+      demandForecast: placeholderDemandForecast,
+      coverageNeeds: placeholderCoverageNeeds,
+      companyPolicies: placeholderCompanyPolicies,
+      scheduleRequirements: 'The Bartender role requires the employee to be 21 or older. Prioritize full-day shifts for experienced staff (e.g., Bob). Aim to keep labor costs under $2000 for the week.',
     },
   });
 
@@ -119,10 +117,10 @@ export default function ScheduleAssistantPage() {
     <>
       <PageHeader
         title="AI Schedule Assistant"
-        description="Generate optimal schedules and perform quick pay calculations."
+        description="Generate optimal schedules by providing comprehensive business and employee data."
       />
       <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-1 space-y-8">
+        <div className="lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle>Scheduling Parameters</CardTitle>
@@ -133,42 +131,56 @@ export default function ScheduleAssistantPage() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="employeeAvailability"
+                    name="employeeData"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Employee Availability</FormLabel>
+                        <FormLabel>Employee Data</FormLabel>
                         <FormControl>
                           <Textarea rows={8} placeholder="Enter JSON..." {...field} />
                         </FormControl>
-                        <FormDescription>JSON format of employee availability.</FormDescription>
+                        <FormDescription>Employee info, availability, and preferences.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control}
-                    name="complianceRules"
+                    name="demandForecast"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Compliance Rules</FormLabel>
+                        <FormLabel>Demand Forecast</FormLabel>
                         <FormControl>
                           <Textarea rows={5} placeholder="Enter JSON..." {...field} />
                         </FormControl>
-                         <FormDescription>JSON format of compliance rules.</FormDescription>
+                         <FormDescription>Historical data and sales trends.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control}
-                    name="predictedWorkload"
+                    name="coverageNeeds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Predicted Workload</FormLabel>
+                        <FormLabel>Coverage Needs</FormLabel>
                         <FormControl>
                           <Textarea rows={6} placeholder="Enter JSON..." {...field} />
                         </FormControl>
-                         <FormDescription>JSON format of predicted workload.</FormDescription>
+                         <FormDescription>Required staff, roles, and skills per shift.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField
+                    control={form.control}
+                    name="companyPolicies"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Policies</FormLabel>
+                        <FormControl>
+                          <Textarea rows={6} placeholder="Enter JSON..." {...field} />
+                        </FormControl>
+                         <FormDescription>Rules for hours, breaks, and workload.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -180,8 +192,9 @@ export default function ScheduleAssistantPage() {
                       <FormItem>
                         <FormLabel>Specific Requirements</FormLabel>
                         <FormControl>
-                          <Textarea rows={3} placeholder="e.g., 'Ensure at least one senior staff is on duty.'" {...field} />
+                          <Textarea rows={3} placeholder="e.g., 'Prioritize cost savings this week.'" {...field} />
                         </FormControl>
+                        <FormDescription>Other goals like age restrictions or cost targets.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -198,14 +211,13 @@ export default function ScheduleAssistantPage() {
               </Form>
             </CardContent>
           </Card>
-          <PayCalculator />
         </div>
         <div className="lg:col-span-2">
           {isLoading && (
             <div className="flex flex-col items-center justify-center h-full min-h-[50vh] p-8 text-center bg-card rounded-lg border border-dashed">
                 <Bot className="h-16 w-16 mb-4 text-primary animate-pulse" />
                 <h3 className="text-2xl font-bold tracking-tight">AI is thinking...</h3>
-                <p className="text-sm text-muted-foreground">Please wait while we generate the optimal schedule for you.</p>
+                <p className="text-sm text-muted-foreground">Analyzing all factors to create the optimal schedule...</p>
             </div>
           )}
           {!isLoading && !suggestion && (
@@ -219,8 +231,8 @@ export default function ScheduleAssistantPage() {
             <div className="grid gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Suggested Schedule</CardTitle>
-                   <CardDescription>The optimal schedule generated by the AI.</CardDescription>
+                  <CardTitle className='flex items-center gap-2'><BarChart3 /> Suggested Schedule</CardTitle>
+                   <CardDescription>The optimal schedule generated by the AI based on your inputs.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <pre className="p-4 bg-muted rounded-lg text-sm overflow-x-auto">
@@ -230,11 +242,31 @@ export default function ScheduleAssistantPage() {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Reasoning</CardTitle>
+                  <CardTitle className='flex items-center gap-2'><FileText /> Reasoning</CardTitle>
                   <CardDescription>The AI's reasoning for this schedule suggestion.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm whitespace-pre-wrap">{suggestion.reasoning}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className='flex items-center gap-2'><TrendingUp /> Analytics</CardTitle>
+                  <CardDescription>Key performance metrics for the generated schedule.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Total Labor Cost</p>
+                        <p className="text-2xl font-bold">${suggestion.analytics.totalLaborCost.toFixed(2)}</p>
+                    </div>
+                     <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Overtime Hours</p>
+                        <p className="text-2xl font-bold">{suggestion.analytics.totalOvertimeHours.toFixed(1)}</p>
+                    </div>
+                     <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Preference Score</p>
+                        <p className="text-2xl font-bold">{(suggestion.analytics.scheduleAdherenceScore * 100).toFixed(0)}%</p>
+                    </div>
                 </CardContent>
               </Card>
             </div>
