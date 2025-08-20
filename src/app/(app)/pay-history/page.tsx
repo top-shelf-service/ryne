@@ -288,23 +288,23 @@ export default function PayHistoryPage() {
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg">
-            <div className={`grid ${isAdminOrManager ? 'grid-cols-7' : 'grid-cols-5'} p-3 font-semibold bg-muted/50 border-b`}>
+            <div className={`grid ${isAdminOrManager ? 'grid-cols-7' : 'grid-cols-6'} p-3 font-semibold bg-muted/50 border-b`}>
               {isAdminOrManager && <div className="col-span-1">Employee</div>}
               <div className="col-span-2">Pay Period</div>
               <div className="col-span-1">Pay Date</div>
               <div className="col-span-1 text-right">Hours</div>
               <div className="col-span-1 text-right">Net Pay</div>
-              {isAdminOrManager && <div className="col-span-1 text-right"></div>}
+              <div className="col-span-1 text-right"></div>
             </div>
             <div className="divide-y">
                 {payStubsToDisplay.map((stub) => (
-                    <div key={stub.id} className={`grid ${isAdminOrManager ? 'grid-cols-7' : 'grid-cols-5'} p-3 items-center text-sm`}>
+                    <div key={stub.id} className={`grid ${isAdminOrManager ? 'grid-cols-7' : 'grid-cols-6'} p-3 items-center text-sm`}>
                         {isAdminOrManager && <div className="col-span-1 font-medium">{stub.employee}</div>}
                         <div className="col-span-2">{stub.payPeriod}</div>
                         <div className="col-span-1">{stub.payDate}</div>
                         <div className="col-span-1 text-right">{stub.hours.toFixed(2)}</div>
                         <div className="col-span-1 text-right font-semibold">${stub.total.toFixed(2)}</div>
-                        <div className={`${isAdminOrManager ? 'col-span-2' : 'col-span-1'} flex justify-end`}>
+                        <div className="col-span-1 flex justify-end">
                             <Button variant="ghost" size="sm">
                                 <Download className="mr-2 h-4 w-4" />
                                 View
