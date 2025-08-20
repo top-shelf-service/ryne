@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { Download, PlusCircle, Calendar as CalendarIcon, Sparkles, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,10 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import type { DateRange } from 'react-day-picker';
+import { calculatePayStubAction } from './actions';
+import { useToast } from '@/hooks/use-toast';
+import type { CalculatePayStubOutput } from '@/ai/flows/calculate-pay-stub';
+
 
 const calculateHours = (timeString: string) => {
     const [startTime, endTime] = timeString.split(' - ');
@@ -36,15 +40,24 @@ const calculateHours = (timeString: string) => {
 export default function PayHistoryPage() {
   const searchParams = useSearchParams();
   const role = searchParams.get('role') || 'Staff';
-  const [selectedEmployee, setSelectedEmployee] = React.useState<string>('all');
+  const { toast } = useToast();
+  
+  // Dialog state
   const [isAddStubOpen, setIsAddStubOpen] = React.useState(false);
-
-  // Use a state for pay stubs so we can add to it
+  
+  // Data state
+  const [selectedEmployee, setSelectedEmployee] = React.useState<string>('all');
   const [allPayStubs, setAllPayStubs] = React.useState(allPayStubsData);
-
+  
+  // Form state
   const [newStubEmployee, setNewStubEmployee] = React.useState('Alice');
   const [newStubRate, setNewStubRate] = React.useState(20);
+  const [newStubState, setNewStubState] = React.useState('CA');
   const [payPeriod, setPayPeriod] = React.useState<DateRange | undefined>();
+  
+  // AI calculation state
+  const [isCalculating, setIsCalculating] = React.useState(false);
+  const [aiResult, setAiResult] = React.useState<CalculatePayStubOutput | null>(null);
 
   const staffPayStubs = allPayStubs.filter(stub => stub.employee === 'Alice');
 
@@ -53,30 +66,67 @@ export default function PayHistoryPage() {
       ? allPayStubs
       : allPayStubs.filter(stub => stub.employee === selectedEmployee)
     : staffPayStubs;
-
-  const handleAddPayStub = () => {
+    
+  const getGrossPay = () => {
     if (!payPeriod?.from || !payPeriod?.to || !newStubEmployee || !newStubRate) {
-        // Maybe show a toast message here
-        return;
+        return 0;
     }
-
     const relevantShifts = allShifts.filter(shift =>
         shift.employee === newStubEmployee &&
         shift.date >= payPeriod.from! &&
         shift.date <= payPeriod.to!
     );
-
     const totalHours = relevantShifts.reduce((acc, shift) => acc + calculateHours(shift.time), 0);
-    const totalPay = totalHours * newStubRate;
+    return totalHours * newStubRate;
+  }
+  
+  const handleAiCalculate = async () => {
+    const grossPay = getGrossPay();
+    if (grossPay <= 0) {
+        toast({
+            variant: 'destructive',
+            title: "Calculation Error",
+            description: "Please ensure a valid employee, pay period, and rate are selected.",
+        });
+        return;
+    }
+    
+    setIsCalculating(true);
+    setAiResult(null);
+
+    const result = await calculatePayStubAction({ grossPay, location: newStubState });
+    
+    if (result.error) {
+        toast({
+            variant: 'destructive',
+            title: "AI Calculation Failed",
+            description: result.error,
+        });
+    } else {
+        setAiResult(result.data!);
+    }
+    
+    setIsCalculating(false);
+  }
+
+  const handleAddPayStub = () => {
+     if (!aiResult) {
+        toast({
+            variant: 'destructive',
+            title: "Cannot Save Stub",
+            description: "Please calculate the pay stub with AI first.",
+        });
+        return;
+    }
 
     const newStub = {
         id: allPayStubs.length + 1,
         employee: newStubEmployee,
-        payPeriod: `${format(payPeriod.from, "LLL d, y")} - ${format(payPeriod.to, "LLL d, y")}`,
+        payPeriod: `${format(payPeriod!.from!, "LLL d, y")} - ${format(payPeriod!.to!, "LLL d, y")}`,
         payDate: format(new Date(), 'yyyy-MM-dd'),
-        hours: totalHours,
+        hours: aiResult.grossPay / newStubRate, // Recalculate hours
         rate: newStubRate,
-        total: totalPay,
+        total: aiResult.netPay, // Use netPay from AI
     };
 
     setAllPayStubs(prevStubs => [...prevStubs, newStub]);
@@ -85,6 +135,7 @@ export default function PayHistoryPage() {
     setNewStubEmployee('Alice');
     setNewStubRate(20);
     setPayPeriod(undefined);
+    setAiResult(null);
   };
 
 
@@ -102,11 +153,11 @@ export default function PayHistoryPage() {
                 Add Pay Stub
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Add New Pay Stub</DialogTitle>
                 <DialogDescription>
-                  Select an employee and pay period to automatically calculate the pay stub.
+                  Calculate and generate a new pay stub using AI-powered deductions.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -168,15 +219,40 @@ export default function PayHistoryPage() {
                         </Popover>
                     </div>
                 </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="location" className="text-right">
+                        State
+                    </Label>
+                    <Input id="location" value={newStubState} onChange={(e) => setNewStubState(e.target.value)} className="col-span-3" placeholder="e.g., CA" />
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="rate" className="text-right">
                     Rate ($)
                   </Label>
                   <Input id="rate" type="number" value={newStubRate} onChange={(e) => setNewStubRate(parseFloat(e.target.value) || 0)} className="col-span-3" />
                 </div>
+                 <div className="col-span-4">
+                    <Button onClick={handleAiCalculate} disabled={isCalculating} className="w-full bg-accent hover:bg-accent/90">
+                        {isCalculating ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2" />}
+                        Calculate with AI
+                    </Button>
+                 </div>
+                 {aiResult && (
+                    <div className="col-span-4 space-y-4 rounded-lg border bg-muted/50 p-4 mt-4">
+                        <h4 className="font-semibold">Calculation Result</h4>
+                         <div className="grid grid-cols-2 gap-2 text-sm">
+                            <span>Gross Pay:</span><span className="text-right font-medium">${aiResult.grossPay.toFixed(2)}</span>
+                            <span>Federal Tax:</span><span className="text-right font-medium">-${aiResult.deductions.federal.toFixed(2)}</span>
+                            <span>State Tax:</span><span className="text-right font-medium">-${aiResult.deductions.state.toFixed(2)}</span>
+                            <span>FICA:</span><span className="text-right font-medium">-${aiResult.deductions.fica.toFixed(2)}</span>
+                            <span className="font-bold border-t pt-2">Net Pay:</span><span className="font-bold border-t pt-2 text-right">${aiResult.netPay.toFixed(2)}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground italic mt-2">{aiResult.reasoning}</p>
+                    </div>
+                 )}
               </div>
               <DialogFooter>
-                <Button type="submit" onClick={handleAddPayStub}>Save Pay Stub</Button>
+                <Button type="submit" onClick={handleAddPayStub} disabled={!aiResult}>Save Pay Stub</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -215,7 +291,7 @@ export default function PayHistoryPage() {
               <div className="col-span-1">Pay Period</div>
               <div className="col-span-1">Pay Date</div>
               <div className="col-span-1 text-right">Hours</div>
-              <div className="col-span-1 text-right">Total Pay</div>
+              <div className="col-span-1 text-right">Net Pay</div>
               <div className="col-span-1 text-right"></div>
             </div>
             <div className="divide-y">
