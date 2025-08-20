@@ -73,8 +73,8 @@ export default function PayHistoryPage() {
     }
     const relevantShifts = allShifts.filter(shift =>
         shift.employee === newStubEmployee &&
-        shift.date >= payPeriod.from! &&
-        shift.date <= payPeriod.to!
+        new Date(shift.date) >= payPeriod.from! &&
+        new Date(shift.date) <= payPeriod.to!
     );
     const totalHours = relevantShifts.reduce((acc, shift) => acc + calculateHours(shift.time), 0);
     return totalHours * newStubRate;
@@ -86,7 +86,7 @@ export default function PayHistoryPage() {
         toast({
             variant: 'destructive',
             title: "Calculation Error",
-            description: "Please ensure a valid employee, pay period, and rate are selected.",
+            description: "Please ensure a valid employee, pay period, and rate are selected, and that shifts exist in that period.",
         });
         return;
     }
@@ -110,11 +110,11 @@ export default function PayHistoryPage() {
   }
 
   const handleAddPayStub = () => {
-     if (!aiResult) {
+     if (!aiResult || !payPeriod?.from || !payPeriod?.to) {
         toast({
             variant: 'destructive',
             title: "Cannot Save Stub",
-            description: "Please calculate the pay stub with AI first.",
+            description: "Please calculate the pay stub with AI first and ensure a pay period is selected.",
         });
         return;
     }
@@ -122,7 +122,7 @@ export default function PayHistoryPage() {
     const newStub = {
         id: allPayStubs.length + 1,
         employee: newStubEmployee,
-        payPeriod: `${format(payPeriod!.from!, "LLL d, y")} - ${format(payPeriod!.to!, "LLL d, y")}`,
+        payPeriod: `${format(payPeriod.from, "LLL d, y")} - ${format(payPeriod.to, "LLL d, y")}`,
         payDate: format(new Date(), 'yyyy-MM-dd'),
         hours: aiResult.grossPay / newStubRate, // Recalculate hours
         rate: newStubRate,
@@ -227,7 +227,7 @@ export default function PayHistoryPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="rate" className="text-right">
-                    Rate ($)
+                    Rate ($/hr)
                   </Label>
                   <Input id="rate" type="number" value={newStubRate} onChange={(e) => setNewStubRate(parseFloat(e.target.value) || 0)} className="col-span-3" />
                 </div>
@@ -252,7 +252,7 @@ export default function PayHistoryPage() {
                  )}
               </div>
               <DialogFooter>
-                <Button type="submit" onClick={handleAddPayStub} disabled={!aiResult}>Save Pay Stub</Button>
+                <Button type="submit" onClick={handleAddPayStub} disabled={!aiResult || isCalculating}>Save Pay Stub</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -286,9 +286,9 @@ export default function PayHistoryPage() {
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg">
-            <div className="grid grid-cols-5 p-3 font-semibold bg-muted/50 border-b">
+            <div className="grid grid-cols-6 p-3 font-semibold bg-muted/50 border-b">
               {(role === 'Admin' || role === 'Manager') && <div className="col-span-1">Employee</div>}
-              <div className="col-span-1">Pay Period</div>
+              <div className="col-span-2">Pay Period</div>
               <div className="col-span-1">Pay Date</div>
               <div className="col-span-1 text-right">Hours</div>
               <div className="col-span-1 text-right">Net Pay</div>
@@ -296,11 +296,11 @@ export default function PayHistoryPage() {
             </div>
             <div className="divide-y">
                 {payStubsToDisplay.map((stub) => (
-                    <div key={stub.id} className="grid grid-cols-5 p-3 items-center text-sm">
+                    <div key={stub.id} className="grid grid-cols-6 p-3 items-center text-sm">
                         {(role === 'Admin' || role === 'Manager') && <div className="col-span-1 font-medium">{stub.employee}</div>}
-                        <div className="col-span-1">{stub.payPeriod}</div>
+                        <div className="col-span-2">{stub.payPeriod}</div>
                         <div className="col-span-1">{stub.payDate}</div>
-                        <div className="col-span-1 text-right">{stub.hours}</div>
+                        <div className="col-span-1 text-right">{stub.hours.toFixed(2)}</div>
                         <div className="col-span-1 text-right font-semibold">${stub.total.toFixed(2)}</div>
                         <div className="col-span-1 flex justify-end">
                             <Button variant="ghost" size="sm">
