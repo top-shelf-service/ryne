@@ -30,7 +30,7 @@ const SuggestScheduleInputSchema = z.object({
   companyPolicies: z
     .string()
     .describe(
-      'A JSON string outlining company policies, including shift assignment protocols, shift swapping guidelines, time-off request procedures, and rules about overtime and workload distribution.'
+      'A string outlining company policies, including shift assignment protocols, shift swapping guidelines, time-off request procedures, and rules about overtime and workload distribution.'
     ),
   scheduleRequirements: z
     .string()
@@ -87,10 +87,10 @@ const prompt = ai.definePrompt({
     *   Factor in any skill-based pay differentials.
 
 4.  **Company Policies & Fairness (Rules & Employee Well-being):**
-    *   Adhere strictly to all company policies provided.
+    *   Adhere strictly to all company policies provided. This includes rules on max hours, rest periods, and more.
     *   Distribute workload as evenly as possible to prevent burnout.
     *   Honor approved time-off requests and employee shift preferences where possible.
-    *   **Company Policies JSON:** \`{{{companyPolicies}}}\`
+    *   **Company Policies Text:** \`{{{companyPolicies}}}\`
 
 5.  **Conflict Resolution (Critical Check):**
     *   **You must identify and resolve all scheduling conflicts.** An employee cannot be scheduled for two different shifts at the same time (double booking).

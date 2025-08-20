@@ -1,30 +1,35 @@
+
 'use client';
 
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Bot, Loader2, Sparkles, ShieldAlert, BarChart3, TrendingUp, FileText, Banknote } from 'lucide-react';
+import { Bot, Loader2, Sparkles, ShieldAlert, BarChart3, TrendingUp, FileText, Mail, Wand2 } from 'lucide-react';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { generateScheduleAction } from './actions';
+import { generateScheduleAction, parseEmailAction } from './actions';
 import type { SuggestScheduleOutput } from '@/ai/flows/suggest-schedule';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Input } from '@/components/ui/input';
 
 export const dynamic = 'force-dynamic';
 
 const FormSchema = z.object({
   employeeData: z.string().min(1, 'Employee data is required.'),
   demandForecast: z.string().min(1, 'Demand forecast is required.'),
-  coverageNeeds: z.string().min(1, 'Coverage needs are required.'),
-  companyPolicies: z.string().min(1, 'Company policies are required.'),
-  scheduleRequirements: z.string().min(1, 'Specific requirements are required.'),
+  coverageNeeds: z.string().min(1, 'Coverage needs is required.'),
+  companyPolicies: z.string(),
+  scheduleRequirements: z.string(),
+  maxHoursPerWeek: z.coerce.number().optional(),
+  minRestBetweenShifts: z.coerce.number().optional(),
 });
+
 
 const placeholderEmployeeData = JSON.stringify(
   [
@@ -49,13 +54,25 @@ const placeholderCoverageNeeds = JSON.stringify(
   }, null, 2
 );
 
-const placeholderCompanyPolicies = JSON.stringify(
-  { "maxHoursPerWeek": 40, "minRestBetweenShifts": 8, "overtime": "Discouraged, requires manager approval", "shiftAssignment": "Preferences considered, but coverage is priority", "workloadDistribution": "Aim for balanced hours over a 2-week period" }, null, 2
-);
+const placeholderCompanyPolicies = "Aim for balanced hours over a 2-week period. Overtime is discouraged and requires manager approval.";
+const placeholderEmailContent = `Hi Team,
+
+Just looking at the numbers from last year for our big summer sale week.
+
+It looks like we were swamped on the weekend, especially Saturday afternoon. We definitely need at least 3 people on the floor from 12pm to 5pm on Saturday. Friday evening was busy too, so let's get 2 servers for that shift. Monday morning is usually pretty dead, one person should be fine.
+
+The main goal is to make sure we're covered for the weekend rush without blowing the budget on overtime. Remember, only experienced staff should be handling the new espresso machine.
+
+Thanks,
+Management`;
+
 
 export default function ScheduleAssistantPage() {
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isParsing, setIsParsing] = React.useState(false);
   const [suggestion, setSuggestion] = React.useState<SuggestScheduleOutput | null>(null);
+  const [emailContent, setEmailContent] = React.useState(placeholderEmailContent);
+
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -69,6 +86,8 @@ export default function ScheduleAssistantPage() {
       coverageNeeds: placeholderCoverageNeeds,
       companyPolicies: placeholderCompanyPolicies,
       scheduleRequirements: 'The Bartender role requires the employee to be 21 or older. Prioritize full-day shifts for experienced staff (e.g., Bob). Aim to keep labor costs under $2000 for the week.',
+      maxHoursPerWeek: 40,
+      minRestBetweenShifts: 8,
     },
   });
 
@@ -94,11 +113,48 @@ export default function ScheduleAssistantPage() {
       );
   }
 
+  const handleParseEmail = async () => {
+    setIsParsing(true);
+    const result = await parseEmailAction({ emailContent });
+    if (result.error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Parsing Email',
+        description: result.error,
+      });
+    } else if (result.data) {
+      form.setValue('demandForecast', result.data.demandForecast);
+      form.setValue('coverageNeeds', result.data.coverageNeeds);
+      form.setValue('scheduleRequirements', `${form.getValues('scheduleRequirements')} \n\n--- From Email ---\n${result.data.scheduleRequirements}`);
+      toast({
+        title: 'Email Parsed Successfully',
+        description: 'The scheduling parameters have been populated below.',
+      });
+    }
+    setIsParsing(false);
+  }
+
+
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsLoading(true);
     setSuggestion(null);
 
-    const result = await generateScheduleAction(data);
+    const fullRequirements = `
+      ${data.scheduleRequirements}
+
+      Company Policies:
+      - Max hours per week: ${data.maxHoursPerWeek || 'Not set'}
+      - Minimum rest between shifts: ${data.minRestBetweenShifts || 'Not set'}
+      - Other policies: ${data.companyPolicies || 'None'}
+    `;
+
+    const result = await generateScheduleAction({
+        employeeData: data.employeeData,
+        demandForecast: data.demandForecast,
+        coverageNeeds: data.coverageNeeds,
+        companyPolicies: data.companyPolicies,
+        scheduleRequirements: fullRequirements
+    });
 
     if (result.error) {
       toast({
@@ -118,8 +174,28 @@ export default function ScheduleAssistantPage() {
       <PageHeader
         title="AI Schedule Assistant"
         description="Generate optimal schedules by providing comprehensive business and employee data."
-      />
-      <div className="grid gap-8 lg:grid-cols-3">
+      ></PageHeader>
+      <div className="grid gap-8">
+        <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Mail /> Import from Email</CardTitle>
+              <CardDescription>Paste the content of an email with last year's numbers or new requirements to automatically populate the fields below.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Textarea
+                    rows={8}
+                    placeholder="Paste email content here..."
+                    value={emailContent}
+                    onChange={(e) => setEmailContent(e.target.value)}
+                />
+                <Button onClick={handleParseEmail} disabled={isParsing} className="mt-4">
+                    {isParsing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                    Parse Email & Populate
+                </Button>
+            </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-8 lg:grid-cols-3 mt-8">
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
@@ -134,7 +210,7 @@ export default function ScheduleAssistantPage() {
                     name="employeeData"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Employee Data</FormLabel>
+                        <FormLabel>Employee Data (JSON)</FormLabel>
                         <FormControl>
                           <Textarea rows={8} placeholder="Enter JSON..." {...field} />
                         </FormControl>
@@ -148,7 +224,7 @@ export default function ScheduleAssistantPage() {
                     name="demandForecast"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Demand Forecast</FormLabel>
+                        <FormLabel>Demand Forecast (JSON)</FormLabel>
                         <FormControl>
                           <Textarea rows={5} placeholder="Enter JSON..." {...field} />
                         </FormControl>
@@ -162,11 +238,37 @@ export default function ScheduleAssistantPage() {
                     name="coverageNeeds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Coverage Needs</FormLabel>
+                        <FormLabel>Coverage Needs (JSON)</FormLabel>
                         <FormControl>
                           <Textarea rows={6} placeholder="Enter JSON..." {...field} />
                         </FormControl>
                          <FormDescription>Required staff, roles, and skills per shift.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="maxHoursPerWeek"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Hours Per Week</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="e.g., 40" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField
+                    control={form.control}
+                    name="minRestBetweenShifts"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Minimum Rest Between Shifts (Hours)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="e.g., 8" {...field} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -176,11 +278,10 @@ export default function ScheduleAssistantPage() {
                     name="companyPolicies"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company Policies</FormLabel>
+                        <FormLabel>Other Company Policies</FormLabel>
                         <FormControl>
-                          <Textarea rows={6} placeholder="Enter JSON..." {...field} />
+                          <Textarea rows={3} placeholder="e.g., 'Overtime requires manager approval.'" {...field} />
                         </FormControl>
-                         <FormDescription>Rules for hours, breaks, and workload.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -190,7 +291,7 @@ export default function ScheduleAssistantPage() {
                     name="scheduleRequirements"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Specific Requirements</FormLabel>
+                        <FormLabel>Specific Requirements & Goals</FormLabel>
                         <FormControl>
                           <Textarea rows={3} placeholder="e.g., 'Prioritize cost savings this week.'" {...field} />
                         </FormControl>
@@ -244,7 +345,7 @@ export default function ScheduleAssistantPage() {
                 <CardHeader>
                   <CardTitle className='flex items-center gap-2'><FileText /> Reasoning</CardTitle>
                   <CardDescription>The AI's reasoning for this schedule suggestion.</CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent>
                   <p className="text-sm whitespace-pre-wrap">{suggestion.reasoning}</p>
                 </CardContent>
@@ -253,7 +354,7 @@ export default function ScheduleAssistantPage() {
                 <CardHeader>
                   <CardTitle className='flex items-center gap-2'><TrendingUp /> Analytics</CardTitle>
                   <CardDescription>Key performance metrics for the generated schedule.</CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                     <div className="p-4 bg-muted/50 rounded-lg">
                         <p className="text-sm text-muted-foreground">Total Labor Cost</p>

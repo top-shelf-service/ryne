@@ -1,6 +1,7 @@
 'use server';
 
 import { suggestSchedule, type SuggestScheduleInput, type SuggestScheduleOutput } from '@/ai/flows/suggest-schedule';
+import { parseScheduleEmail, type ParseScheduleEmailInput, type ParseScheduleEmailOutput } from '@/ai/flows/parse-schedule-email';
 import { z } from 'zod';
 
 const SuggestionSchema = z.object({
@@ -42,5 +43,21 @@ export async function generateScheduleAction(input: SuggestScheduleInput): Promi
   } catch (error) {
     console.error(error);
     return { error: 'An unexpected error occurred. Please check the server logs.' };
+  }
+}
+
+// Action for parsing email
+type ParseEmailResult = {
+  data?: ParseScheduleEmailOutput;
+  error?: string;
+};
+
+export async function parseEmailAction(input: ParseScheduleEmailInput): Promise<ParseEmailResult> {
+  try {
+    const result = await parseScheduleEmail(input);
+    return { data: result };
+  } catch (error) {
+    console.error(error);
+    return { error: 'An unexpected error occurred while parsing the email.' };
   }
 }
