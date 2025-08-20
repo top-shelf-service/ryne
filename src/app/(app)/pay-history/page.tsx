@@ -287,32 +287,38 @@ export default function PayHistoryPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg">
-            <div className={`grid ${isAdminOrManager ? 'grid-cols-7' : 'grid-cols-6'} p-3 font-semibold bg-muted/50 border-b`}>
-              {isAdminOrManager && <div className="col-span-1">Employee</div>}
-              <div className="col-span-2">Pay Period</div>
-              <div className="col-span-1">Pay Date</div>
-              <div className="col-span-1 text-right">Hours</div>
-              <div className="col-span-1 text-right">Net Pay</div>
-              <div className="col-span-1 text-right">Actions</div>
-            </div>
-            <div className="divide-y">
-                {payStubsToDisplay.map((stub) => (
-                    <div key={stub.id} className={`grid ${isAdminOrManager ? 'grid-cols-7' : 'grid-cols-6'} p-3 items-center text-sm`}>
-                        {isAdminOrManager && <div className="col-span-1 font-medium">{stub.employee}</div>}
-                        <div className="col-span-2">{stub.payPeriod}</div>
-                        <div className="col-span-1">{stub.payDate}</div>
-                        <div className="col-span-1 text-right">{stub.hours.toFixed(2)}</div>
-                        <div className="col-span-1 text-right font-semibold">${stub.total.toFixed(2)}</div>
-                        <div className="col-span-1 flex justify-end">
-                            <Button variant="ghost" size="sm">
-                                <Download className="mr-2 h-4 w-4" />
-                                View
-                            </Button>
-                        </div>
-                    </div>
-                ))}
-            </div>
+          <div className="border rounded-lg overflow-x-auto">
+            <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                    <tr className="border-b">
+                        {isAdminOrManager && <th className="p-3 text-left font-semibold">Employee</th>}
+                        <th className="p-3 text-left font-semibold w-1/3">Pay Period</th>
+                        <th className="p-3 text-left font-semibold whitespace-nowrap">Pay Date</th>
+                        <th className="p-3 text-right font-semibold">Hours</th>
+                        <th className="p-3 text-right font-semibold">Net Pay</th>
+                        <th className="p-3 text-right font-semibold">Actions</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y">
+                    {payStubsToDisplay.map((stub) => (
+                        <tr key={stub.id}>
+                            {isAdminOrManager && <td className="p-3 font-medium">{stub.employee}</td>}
+                            <td className="p-3">{stub.payPeriod}</td>
+                            <td className="p-3 whitespace-nowrap">{stub.payDate}</td>
+                            <td className="p-3 text-right">{stub.hours.toFixed(2)}</td>
+                            <td className="p-3 text-right font-semibold">${stub.total.toFixed(2)}</td>
+                            <td className="p-3">
+                                <div className="flex justify-end">
+                                    <Button variant="ghost" size="sm">
+                                        <Download className="mr-2 h-4 w-4" />
+                                        View
+                                    </Button>
+                                </div>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
             {payStubsToDisplay.length === 0 && (
                 <div className="text-center p-8 text-muted-foreground">
                     No pay stubs found for the selected employee.
