@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -19,18 +18,18 @@ import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 
-export const dynamic = 'force-dynamic';
+// NOTE: Removed `export const dynamic = 'force-dynamic'`
+// That export is only valid in Server Components / route files, not in a client component.
 
 const FormSchema = z.object({
   employeeData: z.string().min(1, 'Employee data is required.'),
   demandForecast: z.string().min(1, 'Demand forecast is required.'),
   coverageNeeds: z.string().min(1, 'Coverage needs is required.'),
-  companyPolicies: z.string(),
-  scheduleRequirements: z.string(),
+  companyPolicies: z.string().optional().default(''),
+  scheduleRequirements: z.string().optional().default(''),
   maxHoursPerWeek: z.coerce.number().optional(),
   minRestBetweenShifts: z.coerce.number().optional(),
 });
-
 
 const placeholderEmployeeData = JSON.stringify(
   [
@@ -44,7 +43,9 @@ const placeholderEmployeeData = JSON.stringify(
 );
 
 const placeholderDemandForecast = JSON.stringify(
-  { "historicalData": "Low traffic Mon-AM, high traffic Fri-PM", "salesTrends": "Weekend sales are 50% higher", "predictedNeeds": "Need extra staff for weekend promotion" }, null, 2
+  { "historicalData": "Low traffic Mon-AM, high traffic Fri-PM", "salesTrends": "Weekend sales are 50% higher", "predictedNeeds": "Need extra staff for weekend promotion" },
+  null,
+  2
 );
 
 const placeholderCoverageNeeds = JSON.stringify(
@@ -52,7 +53,9 @@ const placeholderCoverageNeeds = JSON.stringify(
     "Mon-AM": { "requiredStaff": 1, "role": "Bartender", "minSkill": "Novice" },
     "Mon-PM": { "requiredStaff": 2, "role": "Server", "minSkill": "Novice" },
     "Fri-PM": { "requiredStaff": 3, "role": "Server", "minSkill": "Experienced" }
-  }, null, 2
+  },
+  null,
+  2
 );
 
 const placeholderCompanyPolicies = "Aim for balanced hours over a 2-week period. Overtime is discouraged and requires manager approval.";
@@ -66,7 +69,6 @@ The main goal is to make sure we're covered for the weekend rush without blowing
 
 Thanks,
 Management`;
-
 
 export default function ScheduleAssistantPage() {
   const [isLoading, setIsLoading] = React.useState(false);
@@ -86,7 +88,8 @@ export default function ScheduleAssistantPage() {
       demandForecast: placeholderDemandForecast,
       coverageNeeds: placeholderCoverageNeeds,
       companyPolicies: placeholderCompanyPolicies,
-      scheduleRequirements: 'The Bartender role requires the employee to be 21 or older. Prioritize full-day shifts for experienced staff (e.g., Bob). Aim to keep labor costs under $2000 for the week.',
+      scheduleRequirements:
+        'The Bartender role requires the employee to be 21 or older. Prioritize full-day shifts for experienced staff (e.g., Bob). Aim to keep labor costs under $2000 for the week.',
       maxHoursPerWeek: 40,
       minRestBetweenShifts: 8,
     },
@@ -105,70 +108,120 @@ export default function ScheduleAssistantPage() {
   }, [role, router, toast]);
 
   if (role === 'Staff') {
-     return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[60vh] p-8 text-center bg-card rounded-lg border border-dashed">
-            <ShieldAlert className="h-16 w-16 mb-4 text-destructive" />
-            <h3 className="text-2xl font-bold tracking-tight">Access Denied</h3>
-            <p className="text-sm text-muted-foreground">Redirecting you to the dashboard...</p>
-        </div>
-      );
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[60vh] p-8 text-center bg-card rounded-lg border border-dashed">
+        <ShieldAlert className="h-16 w-16 mb-4 text-destructive" />
+        <h3 className="text-2xl font-bold tracking-tight">Access Denied</h3>
+        <p className="text-sm text-muted-foreground">Redirecting you to the dashboard...</p>
+      </div>
+    );
   }
 
   const handleParseEmail = async () => {
-    setIsParsing(true);
-    const result = await parseEmailAction({ emailContent });
-    if (result.error) {
+    try {
+      setIsParsing(true);
+      const result = await parseEmailAction({ emailContent });
+      if (result?.error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error Parsing Email',
+          description: result.error,
+        });
+      } else if (result?.data) {
+        form.setValue('demandForecast', result.data.demandForecast);
+        form.setValue('coverageNeeds', result.data.coverageNeeds);
+        form.setValue(
+          'scheduleRequirements',
+          `${form.getValues('scheduleRequirements') || ''}\n\n--- From Email ---\n${result.data.scheduleRequirements}`
+        );
+        toast({
+          title: 'Email Parsed Successfully',
+          description: 'The scheduling parameters have been populated below.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Parsing Failed',
+          description: 'No data returned from parser.',
+        });
+      }
+    } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'Error Parsing Email',
-        description: result.error,
+        title: 'Unexpected Error',
+        description: err?.message ?? 'Unknown error during email parsing.',
       });
-    } else if (result.data) {
-      form.setValue('demandForecast', result.data.demandForecast);
-      form.setValue('coverageNeeds', result.data.coverageNeeds);
-      form.setValue('scheduleRequirements', `${form.getValues('scheduleRequirements')} \n\n--- From Email ---\n${result.data.scheduleRequirements}`);
-      toast({
-        title: 'Email Parsed Successfully',
-        description: 'The scheduling parameters have been populated below.',
-      });
+    } finally {
+      setIsParsing(false);
     }
-    setIsParsing(false);
-  }
-
+  };
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsLoading(true);
     setSuggestion(null);
 
     const fullRequirements = `
-      ${data.scheduleRequirements}
+${data.scheduleRequirements || ''}
 
-      Company Policies:
-      - Max hours per week: ${data.maxHoursPerWeek || 'Not set'}
-      - Minimum rest between shifts: ${data.minRestBetweenShifts || 'Not set'}
-      - Other policies: ${data.companyPolicies || 'None'}
-    `;
+Company Policies:
+- Max hours per week: ${data.maxHoursPerWeek ?? 'Not set'}
+- Minimum rest between shifts: ${data.minRestBetweenShifts ?? 'Not set'}
+- Other policies: ${data.companyPolicies || 'None'}
+`;
 
-    const result = await generateScheduleAction({
+    try {
+      const result = await generateScheduleAction({
         employeeData: data.employeeData,
         demandForecast: data.demandForecast,
         coverageNeeds: data.coverageNeeds,
-        companyPolicies: data.companyPolicies,
-        scheduleRequirements: fullRequirements
-    });
+        companyPolicies: data.companyPolicies ?? '',
+        scheduleRequirements: fullRequirements,
+      });
 
-    if (result.error) {
+      if (result?.error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error Generating Schedule',
+          description: result.error,
+        });
+      } else if (result?.data) {
+        setSuggestion(result.data);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Generation Failed',
+          description: 'No data returned from scheduler.',
+        });
+      }
+    } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'Error Generating Schedule',
-        description: result.error,
+        title: 'Unexpected Error',
+        description: err?.message ?? 'Unknown error during schedule generation.',
       });
-    } else {
-      setSuggestion(result.data);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   }
+
+  // Defensive render helpers
+  const renderSuggestedSchedule = (payload?: string) => {
+    if (!payload) return 'No schedule returned.';
+    try {
+      return JSON.stringify(JSON.parse(payload), null, 2);
+    } catch {
+      // If the API already stringifies or returns a non-JSON string, just show it raw
+      return payload;
+    }
+  };
+
+  const analytics = suggestion?.analytics;
+  const totalLaborCost = typeof analytics?.totalLaborCost === 'number' ? analytics.totalLaborCost.toFixed(2) : '—';
+  const totalOvertimeHours = typeof analytics?.totalOvertimeHours === 'number' ? analytics.totalOvertimeHours.toFixed(1) : '—';
+  const adherencePct =
+    typeof analytics?.scheduleAdherenceScore === 'number'
+      ? `${(analytics.scheduleAdherenceScore * 100).toFixed(0)}%`
+      : '—';
 
   return (
     <>
@@ -178,24 +231,24 @@ export default function ScheduleAssistantPage() {
       />
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <div className='space-y-6'>
+          <div className="space-y-6">
             <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Mail /> Import from Email</CardTitle>
-                  <CardDescription>Paste an email with requirements to automatically populate the fields below.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Textarea
-                        rows={8}
-                        placeholder="Paste email content here..."
-                        value={emailContent}
-                        onChange={(e) => setEmailContent(e.target.value)}
-                    />
-                    <Button onClick={handleParseEmail} disabled={isParsing} className="mt-4">
-                        {isParsing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                        Parse & Populate
-                    </Button>
-                </CardContent>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Mail /> Import from Email</CardTitle>
+                <CardDescription>Paste an email with requirements to automatically populate the fields below.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  rows={8}
+                  placeholder="Paste email content here..."
+                  value={emailContent}
+                  onChange={(e) => setEmailContent(e.target.value)}
+                />
+                <Button onClick={handleParseEmail} disabled={isParsing} className="mt-4">
+                  {isParsing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                  Parse &amp; Populate
+                </Button>
+              </CardContent>
             </Card>
 
             <Card>
@@ -207,10 +260,10 @@ export default function ScheduleAssistantPage() {
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
-                       <AccordionItem value="item-1">
+                      <AccordionItem value="item-1">
                         <AccordionTrigger>Employee Data</AccordionTrigger>
                         <AccordionContent>
-                           <FormField
+                          <FormField
                             control={form.control}
                             name="employeeData"
                             render={({ field }) => (
@@ -225,11 +278,12 @@ export default function ScheduleAssistantPage() {
                           />
                         </AccordionContent>
                       </AccordionItem>
+
                       <AccordionItem value="item-2">
-                        <AccordionTrigger>Demand & Coverage</AccordionTrigger>
+                        <AccordionTrigger>Demand &amp; Coverage</AccordionTrigger>
                         <AccordionContent>
-                          <div className='space-y-4'>
-                             <FormField
+                          <div className="space-y-4">
+                            <FormField
                               control={form.control}
                               name="demandForecast"
                               render={({ field }) => (
@@ -260,10 +314,11 @@ export default function ScheduleAssistantPage() {
                           </div>
                         </AccordionContent>
                       </AccordionItem>
+
                       <AccordionItem value="item-3">
-                        <AccordionTrigger>Rules & Policies</AccordionTrigger>
+                        <AccordionTrigger>Rules &amp; Policies</AccordionTrigger>
                         <AccordionContent>
-                           <div className='space-y-4'>
+                          <div className="space-y-4">
                             <FormField
                               control={form.control}
                               name="maxHoursPerWeek"
@@ -303,11 +358,12 @@ export default function ScheduleAssistantPage() {
                                 </FormItem>
                               )}
                             />
-                           </div>
+                          </div>
                         </AccordionContent>
                       </AccordionItem>
+
                       <AccordionItem value="item-4">
-                        <AccordionTrigger>Goals & Requirements</AccordionTrigger>
+                        <AccordionTrigger>Goals &amp; Requirements</AccordionTrigger>
                         <AccordionContent>
                           <FormField
                             control={form.control}
@@ -325,6 +381,7 @@ export default function ScheduleAssistantPage() {
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
+
                     <Button type="submit" disabled={isLoading} className="w-full bg-accent hover:bg-accent/90">
                       {isLoading ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -339,61 +396,68 @@ export default function ScheduleAssistantPage() {
             </Card>
           </div>
         </div>
+
         <div className="lg:col-span-2">
           {isLoading && (
             <div className="flex flex-col items-center justify-center h-full min-h-[50vh] p-8 text-center bg-card rounded-lg border border-dashed">
-                <Bot className="h-16 w-16 mb-4 text-primary animate-pulse" />
-                <h3 className="text-2xl font-bold tracking-tight">AI is thinking...</h3>
-                <p className="text-sm text-muted-foreground">Analyzing all factors to create the optimal schedule...</p>
+              <Bot className="h-16 w-16 mb-4 text-primary animate-pulse" />
+              <h3 className="text-2xl font-bold tracking-tight">AI is thinking...</h3>
+              <p className="text-sm text-muted-foreground">Analyzing all factors to create the optimal schedule...</p>
             </div>
           )}
+
           {!isLoading && !suggestion && (
-             <div className="flex flex-col items-center justify-center h-full min-h-[50vh] p-8 text-center bg-card rounded-lg border border-dashed">
-                <Bot className="h-16 w-16 mb-4 text-muted-foreground" />
-                <h3 className="text-2xl font-bold tracking-tight">Your schedule awaits</h3>
-                <p className="text-sm text-muted-foreground">Fill out the parameters on the left and click &quot;Generate Schedule&quot; to see the magic happen.</p>
+            <div className="flex flex-col items-center justify-center h-full min-h-[50vh] p-8 text-center bg-card rounded-lg border border-dashed">
+              <Bot className="h-16 w-16 mb-4 text-muted-foreground" />
+              <h3 className="text-2xl font-bold tracking-tight">Your schedule awaits</h3>
+              <p className="text-sm text-muted-foreground">
+                Fill out the parameters on the left and click &quot;Generate Schedule&quot; to see the magic happen.
+              </p>
             </div>
           )}
+
           {suggestion && (
             <div className="grid gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className='flex items-center gap-2'><BarChart3 /> Suggested Schedule</CardTitle>
-                   <CardDescription>The optimal schedule generated by the AI based on your inputs.</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><BarChart3 /> Suggested Schedule</CardTitle>
+                  <CardDescription>The optimal schedule generated by the AI based on your inputs.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <pre className="p-4 bg-muted rounded-lg text-sm overflow-x-auto">
-                    <code>{JSON.stringify(JSON.parse(suggestion.suggestedSchedule), null, 2)}</code>
+                    <code>{renderSuggestedSchedule(suggestion.suggestedSchedule)}</code>
                   </pre>
                 </CardContent>
               </Card>
+
               <Card>
                 <CardHeader>
-                  <CardTitle className='flex items-center gap-2'><FileText /> Reasoning</CardTitle>
-                  <CardDescription>The AI's reasoning for this schedule suggestion.</CardDescription>
-                </Header>
+                  <CardTitle className="flex items-center gap-2"><FileText /> Reasoning</CardTitle>
+                  <CardDescription>The AI&apos;s reasoning for this schedule suggestion.</CardDescription>
+                </CardHeader>
                 <CardContent>
-                  <p className="text-sm whitespace-pre-wrap">{suggestion.reasoning}</p>
+                  <p className="text-sm whitespace-pre-wrap">{suggestion.reasoning || 'No reasoning provided.'}</p>
                 </CardContent>
               </Card>
+
               <Card>
                 <CardHeader>
-                  <CardTitle className='flex items-center gap-2'><TrendingUp /> Analytics</CardTitle>
+                  <CardTitle className="flex items-center gap-2"><TrendingUp /> Analytics</CardTitle>
                   <CardDescription>Key performance metrics for the generated schedule.</CardDescription>
-                </Header>
+                </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Total Labor Cost</p>
-                        <p className="text-2xl font-bold">${suggestion.analytics.totalLaborCost.toFixed(2)}</p>
-                    </div>
-                     <div className="p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Overtime Hours</p>
-                        <p className="text-2xl font-bold">{suggestion.analytics.totalOvertimeHours.toFixed(1)}</p>
-                    </div>
-                     <div className="p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Preference Score</p>
-                        <p className="text-2xl font-bold">{(suggestion.analytics.scheduleAdherenceScore * 100).toFixed(0)}%</p>
-                    </div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Total Labor Cost</p>
+                    <p className="text-2xl font-bold">${totalLaborCost}</p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Overtime Hours</p>
+                    <p className="text-2xl font-bold">{totalOvertimeHours}</p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Preference Score</p>
+                    <p className="text-2xl font-bold">{adherencePct}</p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
