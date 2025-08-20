@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
     allowedDevOrigins: [
       '*.cloudworkstations.dev',
       '*.firebase.studio',
+      'shyft-xphli.firebaseapp.com',
     ],
   },
 };
