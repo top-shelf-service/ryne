@@ -10,6 +10,7 @@ import { Bot, Loader2, Sparkles, ShieldAlert, BarChart3, TrendingUp, FileText, M
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { generateScheduleAction, parseEmailAction } from './actions';
@@ -174,144 +175,169 @@ export default function ScheduleAssistantPage() {
       <PageHeader
         title="AI Schedule Assistant"
         description="Generate optimal schedules by providing comprehensive business and employee data."
-      ></PageHeader>
-      <div className="grid gap-8">
-        <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Mail /> Import from Email</CardTitle>
-              <CardDescription>Paste the content of an email with last year's numbers or new requirements to automatically populate the fields below.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Textarea
-                    rows={8}
-                    placeholder="Paste email content here..."
-                    value={emailContent}
-                    onChange={(e) => setEmailContent(e.target.value)}
-                />
-                <Button onClick={handleParseEmail} disabled={isParsing} className="mt-4">
-                    {isParsing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                    Parse Email & Populate
-                </Button>
-            </CardContent>
-        </Card>
-      </div>
-      <div className="grid gap-8 lg:grid-cols-3 mt-8">
+      />
+      <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Scheduling Parameters</CardTitle>
-              <CardDescription>Provide the data for the AI to generate a schedule.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="employeeData"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Employee Data (JSON)</FormLabel>
-                        <FormControl>
-                          <Textarea rows={8} placeholder="Enter JSON..." {...field} />
-                        </FormControl>
-                        <FormDescription>Employee info, availability, and preferences.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="demandForecast"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Demand Forecast (JSON)</FormLabel>
-                        <FormControl>
-                          <Textarea rows={5} placeholder="Enter JSON..." {...field} />
-                        </FormControl>
-                         <FormDescription>Historical data and sales trends.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="coverageNeeds"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Coverage Needs (JSON)</FormLabel>
-                        <FormControl>
-                          <Textarea rows={6} placeholder="Enter JSON..." {...field} />
-                        </FormControl>
-                         <FormDescription>Required staff, roles, and skills per shift.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="maxHoursPerWeek"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Max Hours Per Week</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="e.g., 40" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                    control={form.control}
-                    name="minRestBetweenShifts"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Minimum Rest Between Shifts (Hours)</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="e.g., 8" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                    control={form.control}
-                    name="companyPolicies"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Other Company Policies</FormLabel>
-                        <FormControl>
-                          <Textarea rows={3} placeholder="e.g., 'Overtime requires manager approval.'" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="scheduleRequirements"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Specific Requirements & Goals</FormLabel>
-                        <FormControl>
-                          <Textarea rows={3} placeholder="e.g., 'Prioritize cost savings this week.'" {...field} />
-                        </FormControl>
-                        <FormDescription>Other goals like age restrictions or cost targets.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" disabled={isLoading} className="w-full bg-accent hover:bg-accent/90">
-                    {isLoading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="mr-2 h-4 w-4" />
-                    )}
-                    Generate Schedule
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+          <div className='space-y-6'>
+            <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Mail /> Import from Email</CardTitle>
+                  <CardDescription>Paste an email with requirements to automatically populate the fields below.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Textarea
+                        rows={8}
+                        placeholder="Paste email content here..."
+                        value={emailContent}
+                        onChange={(e) => setEmailContent(e.target.value)}
+                    />
+                    <Button onClick={handleParseEmail} disabled={isParsing} className="mt-4">
+                        {isParsing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                        Parse & Populate
+                    </Button>
+                </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Scheduling Parameters</CardTitle>
+                <CardDescription>Provide the data for the AI to generate a schedule.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
+                       <AccordionItem value="item-1">
+                        <AccordionTrigger>Employee Data</AccordionTrigger>
+                        <AccordionContent>
+                           <FormField
+                            control={form.control}
+                            name="employeeData"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Textarea rows={8} placeholder="Enter JSON..." {...field} />
+                                </FormControl>
+                                <FormDescription>Employee info, availability, and preferences.</FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="item-2">
+                        <AccordionTrigger>Demand & Coverage</AccordionTrigger>
+                        <AccordionContent>
+                          <div className='space-y-4'>
+                             <FormField
+                              control={form.control}
+                              name="demandForecast"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Demand Forecast (JSON)</FormLabel>
+                                  <FormControl>
+                                    <Textarea rows={5} placeholder="Enter JSON..." {...field} />
+                                  </FormControl>
+                                  <FormDescription>Historical data and sales trends.</FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="coverageNeeds"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Coverage Needs (JSON)</FormLabel>
+                                  <FormControl>
+                                    <Textarea rows={6} placeholder="Enter JSON..." {...field} />
+                                  </FormControl>
+                                  <FormDescription>Required staff, roles, and skills per shift.</FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="item-3">
+                        <AccordionTrigger>Rules & Policies</AccordionTrigger>
+                        <AccordionContent>
+                           <div className='space-y-4'>
+                            <FormField
+                              control={form.control}
+                              name="maxHoursPerWeek"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Max Hours Per Week</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" placeholder="e.g., 40" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="minRestBetweenShifts"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Minimum Rest Between Shifts (Hours)</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" placeholder="e.g., 8" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="companyPolicies"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Other Company Policies</FormLabel>
+                                  <FormControl>
+                                    <Textarea rows={3} placeholder="e.g., 'Overtime requires manager approval.'" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                           </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="item-4">
+                        <AccordionTrigger>Goals & Requirements</AccordionTrigger>
+                        <AccordionContent>
+                          <FormField
+                            control={form.control}
+                            name="scheduleRequirements"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Textarea rows={3} placeholder="e.g., 'Prioritize cost savings this week.'" {...field} />
+                                </FormControl>
+                                <FormDescription>Other goals like age restrictions or cost targets.</FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                    <Button type="submit" disabled={isLoading} className="w-full bg-accent hover:bg-accent/90">
+                      {isLoading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="mr-2 h-4 w-4" />
+                      )}
+                      Generate Schedule
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </div>
         </div>
         <div className="lg:col-span-2">
           {isLoading && (
