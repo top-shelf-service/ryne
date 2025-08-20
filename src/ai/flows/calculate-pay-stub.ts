@@ -43,13 +43,13 @@ const getTaxRates = ai.defineTool(
   );
 
 
-export const CalculatePayStubInputSchema = z.object({
+const CalculatePayStubInputSchema = z.object({
   grossPay: z.number().describe('The total gross pay before any deductions.'),
   location: z.string().describe('The US state for tax calculation (e.g., "CA").'),
 });
 export type CalculatePayStubInput = z.infer<typeof CalculatePayStubInputSchema>;
 
-export const CalculatePayStubOutputSchema = z.object({
+const CalculatePayStubOutputSchema = z.object({
   grossPay: z.number(),
   deductions: z.object({
     federal: z.number(),

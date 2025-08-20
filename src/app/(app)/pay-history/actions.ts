@@ -1,6 +1,8 @@
 'use server';
 
-import { calculatePayStub, type CalculatePayStubInput, type CalculatePayStubOutput } from '@/ai/flows/calculate-pay-stub';
+import { calculatePayStub, type CalculatePayStubInput, type CalculatePayStubOutput as AiOutput } from '@/ai/flows/calculate-pay-stub';
+
+export type CalculatePayStubOutput = AiOutput;
 
 type AiActionResult = {
     data?: CalculatePayStubOutput;
