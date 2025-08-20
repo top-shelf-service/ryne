@@ -294,7 +294,7 @@ export default function PayHistoryPage() {
               <div className="col-span-1">Pay Date</div>
               <div className="col-span-1 text-right">Hours</div>
               <div className="col-span-1 text-right">Net Pay</div>
-              <div className="col-span-1 text-right"></div>
+              <div className="col-span-1 text-right">Actions</div>
             </div>
             <div className="divide-y">
                 {payStubsToDisplay.map((stub) => (
