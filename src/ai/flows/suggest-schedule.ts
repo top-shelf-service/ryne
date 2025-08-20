@@ -15,14 +15,14 @@ import {z} from 'genkit';
 const SuggestScheduleInputSchema = z.object({
   employeeAvailability: z
     .string()
-    .describe('Employee availability data in JSON format.'),
+    .describe('Employee availability data in JSON format. Each employee object should include "name", "age", and "availableSlots".'),
   complianceRules: z
     .string()
     .describe('Compliance rules data in JSON format.'),
   predictedWorkload: z
     .string()
     .describe('Predicted workload data in JSON format.'),
-  scheduleRequirements: z.string().describe('Any specific schedule requirements or preferences.'),
+  scheduleRequirements: z.string().describe('Any specific schedule requirements or preferences, including age restrictions for roles.'),
 });
 export type SuggestScheduleInput = z.infer<typeof SuggestScheduleInputSchema>;
 
@@ -46,7 +46,9 @@ const prompt = ai.definePrompt({
   output: {schema: SuggestScheduleOutputSchema},
   prompt: `You are an AI schedule optimization expert. Given employee availability, compliance rules, and predicted workload, generate an optimal schedule.
 
-Employee Availability:
+Crucially, you must adhere to any age restrictions mentioned in the schedule requirements. For example, if a role requires an employee to be 21 or older, do not assign anyone younger than 21 to that role.
+
+Employee Availability (including ages):
 {{employeeAvailability}}
 
 Compliance Rules:
@@ -55,10 +57,10 @@ Compliance Rules:
 Predicted Workload:
 {{predictedWorkload}}
 
-Specific Schedule Requirements:
+Specific Schedule Requirements (including age restrictions):
 {{scheduleRequirements}}
 
-Consider all factors and provide a schedule that maximizes efficiency and minimizes conflicts. Return the suggested schedule as JSON, and include your reasoning for the suggested schedule.
+Consider all factors and provide a schedule that maximizes efficiency, minimizes conflicts, and strictly follows all compliance and age-restriction rules. Return the suggested schedule as JSON, and include your reasoning for the suggested schedule.
 
 Output the suggested schedule and reasoning in the following JSON format:
 {

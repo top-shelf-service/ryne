@@ -28,8 +28,9 @@ const FormSchema = z.object({
 
 const placeholderAvailability = JSON.stringify(
   [
-    { employeeId: 'E1', name: 'Alice', availableSlots: ['Mon-AM', 'Tue-PM', 'Wed-AM'] },
-    { employeeId: 'E2', name: 'Bob', availableSlots: ['Mon-PM', 'Wed-AM', 'Thu-FULL'] },
+    { "employeeId": "E1", "name": "Alice", "age": 25, "availableSlots": ["Mon-AM", "Tue-PM", "Wed-AM"] },
+    { "employeeId": "E2", "name": "Bob", "age": 42, "availableSlots": ["Mon-PM", "Wed-AM", "Thu-FULL"] },
+    { "employeeId": "E3", "name": "Charlie", "age": 19, "availableSlots": ["Mon-AM", "Tue-AM", "Wed-PM"] }
   ],
   null,
   2
@@ -46,10 +47,10 @@ const placeholderCompliance = JSON.stringify(
 
 const placeholderWorkload = JSON.stringify(
   {
-    'Mon-AM': { requiredStaff: 1 },
-    'Mon-PM': { requiredStaff: 1 },
-    'Tue-AM': { requiredStaff: 0 },
-    'Tue-PM': { requiredStaff: 1 },
+    'Mon-AM': { requiredStaff: 1, role: "Bartender" },
+    'Mon-PM': { requiredStaff: 1, role: "Server" },
+    'Tue-AM': { requiredStaff: 1, role: "Cashier" },
+    'Tue-PM': { requiredStaff: 1, role: "Server" },
   },
   null,
   2
@@ -69,7 +70,7 @@ export default function ScheduleAssistantPage() {
       employeeAvailability: placeholderAvailability,
       complianceRules: placeholderCompliance,
       predictedWorkload: placeholderWorkload,
-      scheduleRequirements: 'Prioritize full-day shifts for experienced staff (e.g., Bob).',
+      scheduleRequirements: 'The Bartender role requires the employee to be 21 or older. Prioritize full-day shifts for experienced staff (e.g., Bob).',
     },
   });
 
