@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -6,7 +5,18 @@ import { useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, PlusCircle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 const allPayStubs = [
   { id: 1, employee: 'Alice', payPeriod: 'June 1-15, 2024', payDate: '2024-06-20', hours: 80, rate: 20, total: 1600 },
@@ -29,8 +39,9 @@ export default function PayHistoryPage() {
   const searchParams = useSearchParams();
   const role = searchParams.get('role') || 'Staff';
   const [selectedEmployee, setSelectedEmployee] = React.useState<string>('all');
+  const [isAddStubOpen, setIsAddStubOpen] = React.useState(false);
 
-  const payStubsToDisplay = role === 'Admin'
+  const payStubsToDisplay = (role === 'Admin' || role === 'Manager')
     ? selectedEmployee === 'all'
       ? allPayStubs
       : allPayStubs.filter(stub => stub.employee === selectedEmployee)
@@ -40,18 +51,72 @@ export default function PayHistoryPage() {
     <>
       <PageHeader
         title="Pay History"
-        description={role === 'Admin' ? "View and manage employee pay stubs." : "Review your past pay stubs."}
-      />
+        description={ (role === 'Admin' || role === 'Manager') ? "View and manage employee pay stubs." : "Review your past pay stubs."}
+      >
+        {(role === 'Admin' || role === 'Manager') && (
+          <Dialog open={isAddStubOpen} onOpenChange={setIsAddStubOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle />
+                Add Pay Stub
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Pay Stub</DialogTitle>
+                <DialogDescription>
+                  Enter the details for the new pay stub below.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="employee-name" className="text-right">
+                    Employee
+                  </Label>
+                  <Input id="employee-name" placeholder="e.g. Alice" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="pay-period" className="text-right">
+                    Pay Period
+                  </Label>
+                  <Input id="pay-period" placeholder="e.g. June 1-15, 2024" className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="pay-date" className="text-right">
+                    Pay Date
+                  </Label>
+                  <Input id="pay-date" type="date" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="hours" className="text-right">
+                    Hours
+                  </Label>
+                  <Input id="hours" type="number" placeholder="e.g. 80" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="rate" className="text-right">
+                    Rate ($)
+                  </Label>
+                  <Input id="rate" type="number" placeholder="e.g. 20" className="col-span-3" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" onClick={() => setIsAddStubOpen(false)}>Save Pay Stub</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </PageHeader>
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
                 <CardTitle>Check Stubs</CardTitle>
                 <CardDescription>
-                {role === 'Admin' ? "A log of all pay stubs issued." : "A log of all your pay stubs."}
+                {(role === 'Admin' || role === 'Manager') ? "A log of all pay stubs issued." : "A log of all your pay stubs."}
                 </CardDescription>
             </div>
-             {role === 'Admin' && (
+             {(role === 'Admin' || role === 'Manager') && (
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Filter by employee:</span>
                     <select
@@ -71,7 +136,7 @@ export default function PayHistoryPage() {
         <CardContent>
           <div className="border rounded-lg">
             <div className="grid grid-cols-5 p-3 font-semibold bg-muted/50 border-b">
-              {role === 'Admin' && <div className="col-span-1">Employee</div>}
+              {(role === 'Admin' || role === 'Manager') && <div className="col-span-1">Employee</div>}
               <div className="col-span-1">Pay Period</div>
               <div className="col-span-1">Pay Date</div>
               <div className="col-span-1 text-right">Hours</div>
@@ -81,7 +146,7 @@ export default function PayHistoryPage() {
             <div className="divide-y">
                 {payStubsToDisplay.map((stub) => (
                     <div key={stub.id} className="grid grid-cols-5 p-3 items-center text-sm">
-                        {role === 'Admin' && <div className="col-span-1 font-medium">{stub.employee}</div>}
+                        {(role === 'Admin' || role === 'Manager') && <div className="col-span-1 font-medium">{stub.employee}</div>}
                         <div className="col-span-1">{stub.payPeriod}</div>
                         <div className="col-span-1">{stub.payDate}</div>
                         <div className="col-span-1 text-right">{stub.hours}</div>
