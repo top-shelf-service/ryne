@@ -92,14 +92,17 @@ const prompt = ai.definePrompt({
     *   Honor approved time-off requests and employee shift preferences where possible.
     *   **Company Policies JSON:** \`{{companyPolicies}}\`
 
-5.  **Specific Requirements (Fine-Tuning):**
+5.  **Conflict Resolution (Critical Check):**
+    *   **You must identify and resolve all scheduling conflicts.** An employee cannot be scheduled for two different shifts at the same time (double booking).
+
+6.  **Specific Requirements (Fine-Tuning):**
     *   Incorporate any other specific instructions, goals, or constraints.
     *   **Specific Requirements Text:** \`{{scheduleRequirements}}\`
 
 **Output Requirements:**
 
 *   **Suggested Schedule:** Generate a clear schedule in JSON format.
-*   **Reasoning:** Provide a detailed explanation of your reasoning. Describe how you balanced the competing factors of cost, coverage, compliance, and employee preferences.
+*   **Reasoning:** Provide a detailed explanation of your reasoning. Describe how you balanced the competing factors of cost, coverage, compliance, and employee preferences. Specifically mention if you resolved any potential conflicts.
 *   **Analytics:** Calculate and provide the following performance metrics for your suggested schedule:
     *   \`totalLaborCost\`: The estimated total labor cost for the period.
     *   \`totalOvertimeHours\`: The total number of overtime hours scheduled.
