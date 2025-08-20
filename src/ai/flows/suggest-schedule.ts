@@ -101,9 +101,9 @@ const prompt = ai.definePrompt({
 *   **Suggested Schedule:** Generate a clear schedule in JSON format.
 *   **Reasoning:** Provide a detailed explanation of your reasoning. Describe how you balanced the competing factors of cost, coverage, compliance, and employee preferences.
 *   **Analytics:** Calculate and provide the following performance metrics for your suggested schedule:
-    *   `totalLaborCost`: The estimated total labor cost for the period.
-    *   `totalOvertimeHours`: The total number of overtime hours scheduled.
-    *   `scheduleAdherenceScore`: An estimated score (0.0 to 1.0) of how well the schedule adheres to employee preferences and availability.
+    *   \`totalLaborCost\`: The estimated total labor cost for the period.
+    *   \`totalOvertimeHours\`: The total number of overtime hours scheduled.
+    *   \`scheduleAdherenceScore\`: An estimated score (0.0 to 1.0) of how well the schedule adheres to employee preferences and availability.
 
 Return the full response in the required JSON format.
 `,
