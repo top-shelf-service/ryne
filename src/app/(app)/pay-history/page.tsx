@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -23,9 +24,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import type { DateRange } from 'react-day-picker';
-import { calculatePayStubAction } from './actions';
+import { calculatePayStubAction, type CalculatePayStubOutput } from './actions';
 import { useToast } from '@/hooks/use-toast';
-import type { CalculatePayStubOutput } from '@/ai/flows/calculate-pay-stub';
 
 
 const calculateHours = (timeString: string) => {
@@ -102,8 +102,8 @@ export default function PayHistoryPage() {
             title: "AI Calculation Failed",
             description: result.error,
         });
-    } else {
-        setAiResult(result.data!);
+    } else if (result.data) {
+        setAiResult(result.data);
     }
     
     setIsCalculating(false);
@@ -129,7 +129,7 @@ export default function PayHistoryPage() {
         total: aiResult.netPay, // Use netPay from AI
     };
 
-    setAllPayStubs(prevStubs => [...prevStubs, newStub]);
+    setAllPayStubs(prevStubs => [newStub, ...prevStubs]);
     setIsAddStubOpen(false);
     // Reset form
     setNewStubEmployee('Alice');
@@ -322,3 +322,5 @@ export default function PayHistoryPage() {
     </>
   );
 }
+
+    

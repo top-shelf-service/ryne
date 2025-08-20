@@ -1,8 +1,23 @@
+
 'use server';
 
-import { calculatePayStub, type CalculatePayStubInput, type CalculatePayStubOutput as AiOutput } from '@/ai/flows/calculate-pay-stub';
+import { calculatePayStub, type CalculatePayStubInput } from '@/ai/flows/calculate-pay-stub';
+import { z } from 'zod';
 
-export type CalculatePayStubOutput = AiOutput;
+const CalculatePayStubOutputSchema = z.object({
+  grossPay: z.number(),
+  deductions: z.object({
+    federal: z.number(),
+    state: z.number(),
+    fica: z.number(),
+    total: z.number(),
+  }),
+  netPay: z.number(),
+  reasoning: z.string(),
+});
+
+export type CalculatePayStubOutput = z.infer<typeof CalculatePayStubOutputSchema>;
+
 
 type AiActionResult = {
     data?: CalculatePayStubOutput;
@@ -12,12 +27,16 @@ type AiActionResult = {
 export async function calculatePayStubAction(input: CalculatePayStubInput): Promise<AiActionResult> {
   try {
     const result = await calculatePayStub(input);
-    if (!result) {
-      return { error: 'The AI failed to return a response. Please try again.' };
+    const parsed = CalculatePayStubOutputSchema.safeParse(result);
+    if (!parsed.success) {
+      console.error(parsed.error);
+      return { error: 'The AI returned an invalid response format. Please try again.' };
     }
-    return { data: result };
+    return { data: parsed.data };
   } catch (error) {
     console.error(error);
     return { error: 'An unexpected error occurred. Please check the server logs.' };
   }
 }
+
+    
