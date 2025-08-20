@@ -17,6 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PayCalculator } from '@/components/pay-calculator';
 
+export const dynamic = 'force-dynamic';
+
 const FormSchema = z.object({
   employeeAvailability: z.string().min(1, 'Employee availability is required.'),
   complianceRules: z.string().min(1, 'Compliance rules are required.'),

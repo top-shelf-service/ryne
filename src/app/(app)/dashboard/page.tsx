@@ -9,6 +9,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import * as React from 'react';
 
+export const dynamic = 'force-dynamic';
+
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const role = searchParams.get('role') || 'Staff';

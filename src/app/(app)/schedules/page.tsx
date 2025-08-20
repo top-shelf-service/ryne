@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label";
 import { allShifts, type Shift } from '@/lib/data';
 
+export const dynamic = 'force-dynamic';
 
 const staffShifts = allShifts.filter(shift => shift.employee === 'Alice').slice(0, 3);
 

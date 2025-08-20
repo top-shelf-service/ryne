@@ -10,6 +10,8 @@ import { SendHorizonal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchParams } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 const conversations = [
   {
     id: 1,

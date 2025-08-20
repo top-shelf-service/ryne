@@ -27,6 +27,7 @@ import type { DateRange } from 'react-day-picker';
 import { calculatePayStubAction, type CalculatePayStubOutput } from './actions';
 import { useToast } from '@/hooks/use-toast';
 
+export const dynamic = 'force-dynamic';
 
 const calculateHours = (timeString: string) => {
     const [startTime, endTime] = timeString.split(' - ');
