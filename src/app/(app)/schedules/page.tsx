@@ -19,26 +19,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Label } from "@/components/ui/label";
+import { allShifts, type Shift } from '@/lib/data';
 
-type Shift = {
-  id: number;
-  employee: string;
-  date: Date;
-  time: string;
-  role: string;
-  status: string;
-  break: string;
-};
-
-const allShifts: Shift[] = [
-  { id: 1, employee: 'Alice', date: new Date(2024, 5, 24), time: '9:00 AM - 5:00 PM', role: 'Cashier', status: 'Confirmed', break: '12:30 PM - 1:00 PM' },
-  { id: 2, employee: 'Bob', date: new Date(2024, 5, 24), time: '11:00 AM - 7:00 PM', role: 'Barista', status: 'Confirmed', break: '2:00 PM - 2:30 PM' },
-  { id: 3, employee: 'Alice', date: new Date(2024, 5, 25), time: '9:00 AM - 3:00 PM', role: 'Cashier', status: 'Confirmed', break: '12:00 PM - 12:30 PM' },
-  { id: 4, employee: 'Charlie', date: new Date(2024, 5, 25), time: '1:00 PM - 9:00 PM', role: 'Barista', status: 'Pending', break: '4:00 PM - 4:30 PM' },
-  { id: 5, employee: 'Bob', date: new Date(2024, 5, 26), time: '11:00 AM - 7:00 PM', role: 'Barista', status: 'Confirmed', break: '2:00 PM - 2:30 PM' },
-  { id: 6, employee: 'Alice', date: new Date(2024, 5, 27), time: '9:00 AM - 5:00 PM', role: 'Cashier', status: 'Confirmed', break: '12:30 PM - 1:00 PM' },
-];
 
 const staffShifts = allShifts.filter(shift => shift.employee === 'Alice').slice(0, 3);
 

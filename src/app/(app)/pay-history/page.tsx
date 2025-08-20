@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, PlusCircle } from 'lucide-react';
+import { Download, PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,25 +14,23 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { allPayStubsData, allShifts, employees } from '@/lib/data';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import type { DateRange } from 'react-day-picker';
 
-const allPayStubs = [
-  { id: 1, employee: 'Alice', payPeriod: 'June 1-15, 2024', payDate: '2024-06-20', hours: 80, rate: 20, total: 1600 },
-  { id: 2, employee: 'Alice', payPeriod: 'May 16-31, 2024', payDate: '2024-06-05', hours: 75, rate: 20, total: 1500 },
-  { id: 3, employee: 'Bob', payPeriod: 'June 1-15, 2024', payDate: '2024-06-20', hours: 85, rate: 22, total: 1870 },
-  { id: 4, employee: 'Charlie', payPeriod: 'June 1-15, 2024', payDate: '2024-06-20', hours: 80, rate: 21, total: 1680 },
-  { id: 5, employee: 'Bob', payPeriod: 'May 16-31, 2024', payDate: '2024-06-05', hours: 82, rate: 22, total: 1804 },
-];
-
-const staffPayStubs = allPayStubs.filter(stub => stub.employee === 'Alice');
-
-// A simple map of employee names to employee IDs for filtering
-const employees = {
-  'Alice': 'E1',
-  'Bob': 'E2',
-  'Charlie': 'E3'
+const calculateHours = (timeString: string) => {
+    const [startTime, endTime] = timeString.split(' - ');
+    const start = new Date(`1970-01-01 ${startTime}`);
+    const end = new Date(`1970-01-01 ${endTime}`);
+    let hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    if (hours < 0) hours += 24; // Handle overnight shifts
+    return hours;
 };
 
 export default function PayHistoryPage() {
@@ -41,11 +39,54 @@ export default function PayHistoryPage() {
   const [selectedEmployee, setSelectedEmployee] = React.useState<string>('all');
   const [isAddStubOpen, setIsAddStubOpen] = React.useState(false);
 
+  // Use a state for pay stubs so we can add to it
+  const [allPayStubs, setAllPayStubs] = React.useState(allPayStubsData);
+
+  const [newStubEmployee, setNewStubEmployee] = React.useState('Alice');
+  const [newStubRate, setNewStubRate] = React.useState(20);
+  const [payPeriod, setPayPeriod] = React.useState<DateRange | undefined>();
+
+  const staffPayStubs = allPayStubs.filter(stub => stub.employee === 'Alice');
+
   const payStubsToDisplay = (role === 'Admin' || role === 'Manager')
     ? selectedEmployee === 'all'
       ? allPayStubs
       : allPayStubs.filter(stub => stub.employee === selectedEmployee)
     : staffPayStubs;
+
+  const handleAddPayStub = () => {
+    if (!payPeriod?.from || !payPeriod?.to || !newStubEmployee || !newStubRate) {
+        // Maybe show a toast message here
+        return;
+    }
+
+    const relevantShifts = allShifts.filter(shift =>
+        shift.employee === newStubEmployee &&
+        shift.date >= payPeriod.from! &&
+        shift.date <= payPeriod.to!
+    );
+
+    const totalHours = relevantShifts.reduce((acc, shift) => acc + calculateHours(shift.time), 0);
+    const totalPay = totalHours * newStubRate;
+
+    const newStub = {
+        id: allPayStubs.length + 1,
+        employee: newStubEmployee,
+        payPeriod: `${format(payPeriod.from, "LLL d, y")} - ${format(payPeriod.to, "LLL d, y")}`,
+        payDate: format(new Date(), 'yyyy-MM-dd'),
+        hours: totalHours,
+        rate: newStubRate,
+        total: totalPay,
+    };
+
+    setAllPayStubs(prevStubs => [...prevStubs, newStub]);
+    setIsAddStubOpen(false);
+    // Reset form
+    setNewStubEmployee('Alice');
+    setNewStubRate(20);
+    setPayPeriod(undefined);
+  };
+
 
   return (
     <>
@@ -65,7 +106,7 @@ export default function PayHistoryPage() {
               <DialogHeader>
                 <DialogTitle>Add New Pay Stub</DialogTitle>
                 <DialogDescription>
-                  Enter the details for the new pay stub below.
+                  Select an employee and pay period to automatically calculate the pay stub.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -73,35 +114,69 @@ export default function PayHistoryPage() {
                   <Label htmlFor="employee-name" className="text-right">
                     Employee
                   </Label>
-                  <Input id="employee-name" placeholder="e.g. Alice" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="pay-period" className="text-right">
-                    Pay Period
-                  </Label>
-                  <Input id="pay-period" placeholder="e.g. June 1-15, 2024" className="col-span-3" />
+                   <select
+                        id="employee-name"
+                        value={newStubEmployee}
+                        onChange={(e) => setNewStubEmployee(e.target.value)}
+                        className="col-span-3 p-2 border rounded-md bg-background text-sm"
+                    >
+                        {Object.keys(employees).map((name) => (
+                            <option key={name} value={name}>{name}</option>
+                        ))}
+                    </select>
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="pay-date" className="text-right">
-                    Pay Date
-                  </Label>
-                  <Input id="pay-date" type="date" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="hours" className="text-right">
-                    Hours
-                  </Label>
-                  <Input id="hours" type="number" placeholder="e.g. 80" className="col-span-3" />
+                    <Label htmlFor="pay-period" className="text-right">
+                        Pay Period
+                    </Label>
+                    <div className="col-span-3">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !payPeriod && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {payPeriod?.from ? (
+                                payPeriod.to ? (
+                                    <>
+                                    {format(payPeriod.from, "LLL dd, y")} -{" "}
+                                    {format(payPeriod.to, "LLL dd, y")}
+                                    </>
+                                ) : (
+                                    format(payPeriod.from, "LLL dd, y")
+                                )
+                                ) : (
+                                <span>Pick a date range</span>
+                                )}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={payPeriod?.from}
+                                selected={payPeriod}
+                                onSelect={setPayPeriod}
+                                numberOfMonths={2}
+                            />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="rate" className="text-right">
                     Rate ($)
                   </Label>
-                  <Input id="rate" type="number" placeholder="e.g. 20" className="col-span-3" />
+                  <Input id="rate" type="number" value={newStubRate} onChange={(e) => setNewStubRate(parseFloat(e.target.value) || 0)} className="col-span-3" />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" onClick={() => setIsAddStubOpen(false)}>Save Pay Stub</Button>
+                <Button type="submit" onClick={handleAddPayStub}>Save Pay Stub</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
