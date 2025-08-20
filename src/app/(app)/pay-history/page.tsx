@@ -210,16 +210,18 @@ export default function PayHistoryPage() {
                                 )}
                             </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={payPeriod?.from}
-                                selected={payPeriod}
-                                onSelect={setPayPeriod}
-                                numberOfMonths={2}
-                            />
-                            </PopoverContent>
+                            <DialogPortal>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={payPeriod?.from}
+                                    selected={payPeriod}
+                                    onSelect={setPayPeriod}
+                                    numberOfMonths={2}
+                                />
+                                </PopoverContent>
+                            </DialogPortal>
                         </Popover>
                     </div>
                 </div>
