@@ -137,15 +137,17 @@ export default function PayHistoryPage() {
     setPayPeriod(undefined);
     setAiResult(null);
   };
+  
+  const isAdminOrManager = role === 'Admin' || role === 'Manager';
 
 
   return (
     <>
       <PageHeader
         title="Pay History"
-        description={ (role === 'Admin' || role === 'Manager') ? "View and manage employee pay stubs." : "Review your past pay stubs."}
+        description={ isAdminOrManager ? "View and manage employee pay stubs." : "Review your past pay stubs."}
       >
-        {(role === 'Admin' || role === 'Manager') && (
+        {isAdminOrManager && (
           <Dialog open={isAddStubOpen} onOpenChange={setIsAddStubOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -264,10 +266,10 @@ export default function PayHistoryPage() {
             <div>
                 <CardTitle>Check Stubs</CardTitle>
                 <CardDescription>
-                {(role === 'Admin' || role === 'Manager') ? "A log of all pay stubs issued." : "A log of all your pay stubs."}
+                {isAdminOrManager ? "A log of all pay stubs issued." : "A log of all your pay stubs."}
                 </CardDescription>
             </div>
-             {(role === 'Admin' || role === 'Manager') && (
+             {isAdminOrManager && (
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Filter by employee:</span>
                     <select
@@ -286,23 +288,23 @@ export default function PayHistoryPage() {
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg">
-            <div className="grid grid-cols-6 p-3 font-semibold bg-muted/50 border-b">
-              {(role === 'Admin' || role === 'Manager') && <div className="col-span-1">Employee</div>}
+            <div className={`grid ${isAdminOrManager ? 'grid-cols-7' : 'grid-cols-5'} p-3 font-semibold bg-muted/50 border-b`}>
+              {isAdminOrManager && <div className="col-span-1">Employee</div>}
               <div className="col-span-2">Pay Period</div>
               <div className="col-span-1">Pay Date</div>
               <div className="col-span-1 text-right">Hours</div>
               <div className="col-span-1 text-right">Net Pay</div>
-              <div className="col-span-1 text-right"></div>
+              {isAdminOrManager && <div className="col-span-1 text-right"></div>}
             </div>
             <div className="divide-y">
                 {payStubsToDisplay.map((stub) => (
-                    <div key={stub.id} className="grid grid-cols-6 p-3 items-center text-sm">
-                        {(role === 'Admin' || role === 'Manager') && <div className="col-span-1 font-medium">{stub.employee}</div>}
+                    <div key={stub.id} className={`grid ${isAdminOrManager ? 'grid-cols-7' : 'grid-cols-5'} p-3 items-center text-sm`}>
+                        {isAdminOrManager && <div className="col-span-1 font-medium">{stub.employee}</div>}
                         <div className="col-span-2">{stub.payPeriod}</div>
                         <div className="col-span-1">{stub.payDate}</div>
                         <div className="col-span-1 text-right">{stub.hours.toFixed(2)}</div>
                         <div className="col-span-1 text-right font-semibold">${stub.total.toFixed(2)}</div>
-                        <div className="col-span-1 flex justify-end">
+                        <div className={`${isAdminOrManager ? 'col-span-2' : 'col-span-1'} flex justify-end`}>
                             <Button variant="ghost" size="sm">
                                 <Download className="mr-2 h-4 w-4" />
                                 View
