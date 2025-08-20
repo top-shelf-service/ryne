@@ -73,13 +73,13 @@ const prompt = ai.definePrompt({
 1.  **Employee Data (Primary Input):**
     *   **Crucially, you must adhere to any age restrictions** mentioned in the schedule requirements. For example, if a role requires an employee to be 21 or older, do not assign anyone younger to that role.
     *   Consider employee availability, preferences, time-off, and skill levels.
-    *   **Employee Data JSON:** \`{{employeeData}}\`
+    *   **Employee Data JSON:** \`{{{employeeData}}}\`
 
 2.  **Demand & Coverage (Operational Needs):**
     *   Use demand forecasting to ensure peak periods are well-staffed.
     *   Ensure all shifts and critical tasks have adequate coverage.
-    *   **Demand Forecast JSON:** \`{{demandForecast}}\`
-    *   **Coverage Needs JSON:** \`{{coverageNeeds}}\`
+    *   **Demand Forecast JSON:** \`{{{demandForecast}}}\`
+    *   **Coverage Needs JSON:** \`{{{coverageNeeds}}}\`
 
 3.  **Cost Optimization (Financial Constraints):**
     *   Minimize labor costs by considering individual wage rates.
@@ -90,14 +90,14 @@ const prompt = ai.definePrompt({
     *   Adhere strictly to all company policies provided.
     *   Distribute workload as evenly as possible to prevent burnout.
     *   Honor approved time-off requests and employee shift preferences where possible.
-    *   **Company Policies JSON:** \`{{companyPolicies}}\`
+    *   **Company Policies JSON:** \`{{{companyPolicies}}}\`
 
 5.  **Conflict Resolution (Critical Check):**
     *   **You must identify and resolve all scheduling conflicts.** An employee cannot be scheduled for two different shifts at the same time (double booking).
 
 6.  **Specific Requirements (Fine-Tuning):**
     *   Incorporate any other specific instructions, goals, or constraints.
-    *   **Specific Requirements Text:** \`{{scheduleRequirements}}\`
+    *   **Specific Requirements Text:** \`{{{scheduleRequirements}}}\`
 
 **Output Requirements:**
 
