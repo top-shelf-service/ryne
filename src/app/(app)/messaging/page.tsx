@@ -108,13 +108,13 @@ export default function MessagingPage() {
   const myName = role === 'Admin' ? 'Admin' : 'Staff Member';
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-[calc(100vh-120px)]">
       <PageHeader
         title="In-App Messaging"
         description="Communicate with your team members directly."
       />
-      <Card className="flex-grow flex flex-col h-[calc(100vh-200px)]">
-        <div className="grid grid-cols-1 md:grid-cols-3 w-full flex-grow overflow-hidden">
+      <Card className="flex-grow flex overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3 w-full overflow-hidden">
           <div className="col-span-1 border-r border-border flex flex-col">
             <CardHeader className="flex-shrink-0">
               <CardTitle>Conversations</CardTitle>
@@ -152,7 +152,7 @@ export default function MessagingPage() {
           <div className="col-span-2 flex flex-col">
             {selectedConversation ? (
               <>
-                <div className="flex items-center gap-4 p-4 border-b flex-shrink-0">
+                <div className="flex-shrink-0 flex items-center gap-4 p-4 border-b">
                    <Avatar>
                     <AvatarImage src={selectedConversation.avatar} />
                     <AvatarFallback>{selectedConversation.name.charAt(0)}</AvatarFallback>
@@ -178,7 +178,7 @@ export default function MessagingPage() {
                         </div>
                     ))}
                 </div>
-                <div className="p-4 border-t flex-shrink-0">
+                <div className="flex-shrink-0 p-4 border-t">
                   <form onSubmit={handleSendMessage} className="flex gap-2">
                     <Input
                       value={newMessage}
