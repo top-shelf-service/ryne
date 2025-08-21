@@ -50,7 +50,9 @@ export default function PayHistoryPage() {
   // Data state
   const [selectedEmployee, setSelectedEmployee] = React.useState<string>('all');
   const [allPayStubs, setAllPayStubs] = React.useState(allPayStubsData);
-  
+  const [startDate, setStartDate] = React.useState<Date | undefined>();
+  const [endDate, setEndDate] = React.useState<Date | undefined>();
+
   // Form state
   const [newStubEmployee, setNewStubEmployee] = React.useState('Alice');
   const [newStubRate, setNewStubRate] = React.useState(20);
@@ -64,9 +66,19 @@ export default function PayHistoryPage() {
   const staffPayStubs = allPayStubs.filter(stub => stub.employee === 'Alice');
 
   const payStubsToDisplay = (role === 'Admin' || role === 'Manager')
-    ? selectedEmployee === 'all'
-      ? allPayStubs
-      : allPayStubs.filter(stub => stub.employee === selectedEmployee)
+    ? allPayStubs
+        .filter(stub => selectedEmployee === 'all' || stub.employee === selectedEmployee)
+        .filter(stub => {
+          const stubDate = new Date(stub.payDate);
+          if (startDate && stubDate < startDate) return false;
+          if (endDate) {
+            // Include the end date in the range
+            const endOfDay = new Date(endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (stubDate > endOfDay) return false;
+          }
+          return true;
+        })
     : staffPayStubs;
     
   const getGrossPay = () => {
@@ -131,7 +143,7 @@ export default function PayHistoryPage() {
         total: aiResult.netPay, // Use netPay from AI
     };
 
-    setAllPayStubs(prevStubs => [newStub, ...prevStubs]);
+    setAllPayStubs(prevStubs => [newStub, ...prevStubs].sort((a,b) => new Date(b.payDate).getTime() - new Date(a.payDate).getTime()));
     setIsAddStubOpen(false);
     // Reset form
     setNewStubEmployee('Alice');
@@ -266,7 +278,7 @@ export default function PayHistoryPage() {
       </PageHeader>
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <CardTitle>Check Stubs</CardTitle>
                 <CardDescription>
@@ -274,18 +286,52 @@ export default function PayHistoryPage() {
                 </CardDescription>
             </div>
              {isAdminOrManager && (
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Filter by employee:</span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                    <Label className="text-sm font-medium whitespace-nowrap">Filter by:</Label>
                     <select
                         value={selectedEmployee}
                         onChange={(e) => setSelectedEmployee(e.target.value)}
-                        className="p-2 border rounded-md bg-background text-sm"
+                        className="p-2 border rounded-md bg-background text-sm w-full sm:w-auto"
                     >
                         <option value="all">All Employees</option>
                         {Object.entries(employees).map(([name, id]) => (
                             <option key={id} value={name}>{name}</option>
                         ))}
                     </select>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                            "w-full sm:w-auto justify-start text-left font-normal",
+                            !startDate && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? format(startDate, "LLL dd, y") : <span>Start date</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                        </PopoverContent>
+                    </Popover>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                            "w-full sm:w-auto justify-start text-left font-normal",
+                            !endDate && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? format(endDate, "LLL dd, y") : <span>End date</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
+                        </PopoverContent>
+                    </Popover>
                 </div>
             )}
           </div>
@@ -325,7 +371,7 @@ export default function PayHistoryPage() {
             </table>
             {payStubsToDisplay.length === 0 && (
                 <div className="text-center p-8 text-muted-foreground">
-                    No pay stubs found for the selected employee.
+                    No pay stubs found for the selected filters.
                 </div>
             )}
           </div>
@@ -334,3 +380,6 @@ export default function PayHistoryPage() {
     </>
   );
 }
+
+
+    

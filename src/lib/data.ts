@@ -29,10 +29,13 @@ export const allPayStubsData = [
   { id: 3, employee: 'Bob', payPeriod: 'June 1-15, 2024', payDate: '2024-06-20', hours: 85, rate: 22, total: 1870 },
   { id: 4, employee: 'Charlie', payPeriod: 'June 1-15, 2024', payDate: '2024-06-20', hours: 80, rate: 21, total: 1680 },
   { id: 5, employee: 'Bob', payPeriod: 'May 16-31, 2024', payDate: '2024-06-05', hours: 82, rate: 22, total: 1804 },
-];
+  { id: 6, employee: 'Charlie', payPeriod: 'May 16-31, 2024', payDate: '2024-06-05', hours: 80, rate: 21, total: 1680 },
+].sort((a,b) => new Date(b.payDate).getTime() - new Date(a.payDate).getTime());
 
 export const employees = {
   'Alice': 'E1',
   'Bob': 'E2',
   'Charlie': 'E3'
 };
+
+    
