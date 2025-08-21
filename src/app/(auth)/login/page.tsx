@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 
 const GoogleIcon = (props: React.ComponentProps<'svg'>) => (
     <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -26,15 +26,30 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
 
+  React.useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          toast({
+            title: 'Login Successful',
+            description: 'Redirecting to your dashboard...',
+          });
+          router.push('/dashboard');
+        }
+      })
+      .catch((error) => {
+        toast({
+          variant: 'destructive',
+          title: 'Google Sign-In Failed',
+          description: error.message,
+        });
+      });
+  }, [router, toast]);
+
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      toast({
-        title: 'Login Successful',
-        description: 'Redirecting to your dashboard...',
-      });
-      router.push('/dashboard');
+      await signInWithRedirect(auth, provider);
     } catch (error: any) {
       toast({
         variant: 'destructive',

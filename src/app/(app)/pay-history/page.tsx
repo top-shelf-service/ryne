@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { allPayStubsData, allShifts, employees } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { format, subDays, addDays, startOfMonth, lastDayOfMonth } from 'date-fns';
+import { format, subDays, addDays, startOfMonth, lastDayOfMonth, isSameDay } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { calculatePayStubAction, type CalculatePayStubOutput } from './actions';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +30,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 export const dynamic = 'force-dynamic';
 
 const calculateHours = (timeString: string) => {
+    if (!timeString || !timeString.includes(' - ')) return 0;
     const [startTime, endTime] = timeString.split(' - ');
     const start = new Date(`1970-01-01 ${startTime}`);
     const end = new Date(`1970-01-01 ${endTime}`);
@@ -87,7 +88,9 @@ export default function PayHistoryPage() {
           endDate = lastDayOfMonth(payPeriodStartDate);
           break;
       }
-      setPayPeriodEndDate(endDate);
+      if (endDate && (!payPeriodEndDate || !isSameDay(endDate, payPeriodEndDate))) {
+          setPayPeriodEndDate(endDate);
+      }
     } else if (lastEdited === 'end' && payPeriodEndDate) {
       let startDate;
       switch (payFrequency) {
@@ -108,9 +111,10 @@ export default function PayHistoryPage() {
           startDate = startOfMonth(payPeriodEndDate);
           break;
       }
-      setPayPeriodStartDate(startDate);
+       if (startDate && (!payPeriodStartDate || !isSameDay(startDate, payPeriodStartDate))) {
+          setPayPeriodStartDate(startDate);
+       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payFrequency, lastEdited, payPeriodStartDate, payPeriodEndDate]);
 
   const handleStartDateSelect = (date: Date | undefined) => {
@@ -128,6 +132,7 @@ export default function PayHistoryPage() {
     setPayPeriodStartDate(undefined);
     setPayPeriodEndDate(undefined);
     setLastEdited(null);
+    setAiResult(null);
   };
 
   const staffPayStubs = allPayStubs.filter(stub => stub.employee === 'Alice');
@@ -142,11 +147,17 @@ export default function PayHistoryPage() {
         return 0;
     }
 
-    const relevantShifts = allShifts.filter(shift =>
-        shift.employee === newStubEmployee &&
-        shift.date >= payPeriodStartDate &&
-        shift.date <= payPeriodEndDate
-    );
+    // Ensure start date is before end date
+    const startDate = payPeriodStartDate < payPeriodEndDate ? payPeriodStartDate : payPeriodEndDate;
+    const endDate = payPeriodStartDate < payPeriodEndDate ? payPeriodEndDate : payPeriodStartDate;
+
+    const relevantShifts = allShifts.filter(shift => {
+        const shiftDateOnly = new Date(shift.date.getFullYear(), shift.date.getMonth(), shift.date.getDate());
+        return shift.employee === newStubEmployee &&
+            shiftDateOnly >= startDate &&
+            shiftDateOnly <= endDate;
+    });
+
     const totalHours = relevantShifts.reduce((acc, shift) => acc + calculateHours(shift.time), 0);
     return totalHours * newStubRate;
   }
@@ -237,32 +248,33 @@ export default function PayHistoryPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                 <div className="space-y-2">
-                    <Label htmlFor="employee-name">Employee</Label>
-                    <select
-                        id="employee-name"
-                        value={newStubEmployee}
-                        onChange={(e) => setNewStubEmployee(e.target.value)}
-                        className="w-full p-2 border rounded-md bg-background text-sm"
-                    >
-                        {Object.keys(employees).map((name) => (
-                            <option key={name} value={name}>{name}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="pay-frequency">Pay Frequency</Label>
-                    <RadioGroup
-                        value={payFrequency}
-                        onValueChange={handleFrequencyChange}
-                        className="flex items-center gap-4 flex-wrap"
-                    >
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="weekly" id="weekly" /><Label htmlFor="weekly" className="font-normal">Weekly</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="bi-weekly" id="bi-weekly" /><Label htmlFor="bi-weekly" className="font-normal">Bi-weekly</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="semi-monthly" id="semi-monthly" /><Label htmlFor="semi-monthly" className="font-normal">Semi-monthly</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="monthly" id="monthly" /><Label htmlFor="monthly" className="font-normal">Monthly</Label></div>
-                    </RadioGroup>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="employee-name">Employee</Label>
+                        <select
+                            id="employee-name"
+                            value={newStubEmployee}
+                            onChange={(e) => setNewStubEmployee(e.target.value)}
+                            className="w-full p-2 border rounded-md bg-background text-sm"
+                        >
+                            {Object.keys(employees).map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="pay-frequency">Pay Frequency</Label>
+                        <RadioGroup
+                            value={payFrequency}
+                            onValueChange={handleFrequencyChange}
+                            className="flex items-center gap-4 flex-wrap"
+                        >
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="weekly" id="weekly" /><Label htmlFor="weekly" className="font-normal">W</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="bi-weekly" id="bi-weekly" /><Label htmlFor="bi-weekly" className="font-normal">B</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="semi-monthly" id="semi-monthly" /><Label htmlFor="semi-monthly" className="font-normal">S</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="monthly" id="monthly" /><Label htmlFor="monthly" className="font-normal">M</Label></div>
+                        </RadioGroup>
+                    </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -405,4 +417,3 @@ export default function PayHistoryPage() {
   );
 }
 
-    
