@@ -15,6 +15,7 @@ import {
   Moon,
   Sun,
   History,
+  UserPlus,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ import { Suspense } from 'react';
 const allNavItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Dashboard', roles: ['Admin', 'Manager', 'Staff'] },
   { href: '/pay-history', icon: History, label: 'Pay History', roles: ['Admin', 'Manager', 'Staff'] },
+   { href: '/onboarding', icon: UserPlus, label: 'Add Employee', roles: ['Admin', 'Manager'] },
   { href: '/messaging', icon: MessageSquare, label: 'Messages', roles: ['Admin', 'Manager', 'Staff'] },
   { href: '/schedule-assistant', icon: Bot, label: 'AI Assistant', roles: ['Admin', 'Manager'] },
 ];

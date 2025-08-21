@@ -70,13 +70,10 @@ export default function OnboardingPage() {
     if (!output) return;
 
     if (currentStep < steps.length - 1) {
-      if (currentStep === 0) {
-        // After personal info, redirect to dashboard as admin.
-        // This is a placeholder for the "Create Org" flow.
-        router.push('/dashboard?role=Admin');
-        return;
-      }
       setCurrentStep(step => step + 1);
+    } else {
+        // Final step submit
+        await methods.handleSubmit(onSubmit)();
     }
   };
 
@@ -87,18 +84,28 @@ export default function OnboardingPage() {
   };
   
   const onSubmit = (data: z.infer<typeof OnboardingSchema>) => {
-    console.log(data);
+    console.log('Onboarding data:', data);
+    // In a real app, this data would be saved to a secure backend.
+    // We would also update the user's onboardingStatus to 'complete'.
     alert('Employee onboarded successfully!');
+    // Redirect to the staff dashboard, as they have now completed the mandatory flow.
     router.push('/dashboard?role=Staff');
   }
 
   return (
     <>
-      <PageHeader title="Employee Onboarding" description="Add a new employee by completing the steps below." />
+      <PageHeader title="New Employee Onboarding" description="Complete the following steps to set up your employee profile and payroll information." />
       <Card>
         <CardHeader>
-          <CardTitle>Onboarding Wizard</CardTitle>
-          <CardDescription>Step {currentStep + 1} of {steps.length}: {steps[currentStep].name}</CardDescription>
+           <div className="flex justify-between items-center">
+             <div>
+                <CardTitle>Onboarding Wizard</CardTitle>
+                <CardDescription>Step {currentStep + 1} of {steps.length}: {steps[currentStep].name}</CardDescription>
+             </div>
+             <div className="text-sm text-muted-foreground">
+                Progress: {((currentStep / (steps.length -1)) * 100).toFixed(0)}%
+             </div>
+           </div>
         </CardHeader>
         <CardContent>
           <FormProvider {...methods}>
@@ -208,8 +215,8 @@ export default function OnboardingPage() {
                 <div>
                     <h3 className="text-lg font-semibold">Review Your Information</h3>
                     <p className="text-sm text-muted-foreground mb-4">Please confirm all details are correct before submitting.</p>
-                    <div className="space-y-2 rounded-md border p-4 max-w-2xl">
-                        <pre><code>{JSON.stringify(methods.getValues(), null, 2)}</code></pre>
+                    <div className="space-y-2 rounded-md border p-4 max-w-2xl bg-muted/50">
+                        <pre className='text-sm'><code>{JSON.stringify(methods.getValues(), null, 2)}</code></pre>
                     </div>
                 </div>
               )}
@@ -217,15 +224,15 @@ export default function OnboardingPage() {
               <div className="pt-8">
                 <div className="flex justify-between">
                   <Button type="button" onClick={prev} disabled={currentStep === 0}>
-                    <ChevronLeft className="mr-2" /> Previous
+                    <ChevronLeft className="mr-2 h-4 w-4" /> Previous
                   </Button>
                   {currentStep === steps.length - 1 ? (
                     <Button type="submit">
-                        <UserPlus className="mr-2" /> Onboard Employee
+                        <UserPlus className="mr-2 h-4 w-4" /> Onboard Employee
                     </Button>
                   ) : (
                     <Button type="button" onClick={next}>
-                      Next <ChevronRight className="ml-2" />
+                      Next <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   )}
                 </div>
