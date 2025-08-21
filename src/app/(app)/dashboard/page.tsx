@@ -224,7 +224,6 @@ export default function DashboardPage() {
               />
             </CardContent>
           </Card>
-           {role === 'Admin' && (
             <div className="space-y-6 mt-6">
               <Card>
                 <CardHeader>
@@ -243,7 +242,6 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
-          )}
         </div>
         <div className="lg:col-span-2">
             <Card className="min-h-[425px]">
@@ -326,5 +324,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
