@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import {
   Bot,
-  CalendarDays,
   LayoutGrid,
   LogOut,
   MessageSquare,
