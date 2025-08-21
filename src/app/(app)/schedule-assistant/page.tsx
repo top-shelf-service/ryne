@@ -154,7 +154,7 @@ export default function ScheduleAssistantPage() {
         demandForecast: data.demandForecast,
         coverageNeeds: data.coverageNeeds,
         companyPolicies: data.companyPolicies,
-        scheduleRequirements: fullRequirements
+        scheduleRequirements: fullRequirements,
     });
 
     if (result.error) {
