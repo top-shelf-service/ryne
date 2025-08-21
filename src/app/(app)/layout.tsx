@@ -72,8 +72,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = allNavItems.filter(item => item.roles.includes(role));
 
   const createHrefWithRole = (href: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    return `${href}?${params.toString()}`;
+    const params = searchParams.toString();
+    return `${href}?${params}`;
   }
 
 
