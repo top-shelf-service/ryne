@@ -15,7 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogPortal
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,9 +49,7 @@ export default function PayHistoryPage() {
   // Data state
   const [selectedEmployee, setSelectedEmployee] = React.useState<string>('all');
   const [allPayStubs, setAllPayStubs] = React.useState(allPayStubsData);
-  const [startDate, setStartDate] = React.useState<Date | undefined>();
-  const [endDate, setEndDate] = React.useState<Date | undefined>();
-
+  
   // Form state
   const [newStubEmployee, setNewStubEmployee] = React.useState('Alice');
   const [newStubRate, setNewStubRate] = React.useState(20);
@@ -68,17 +65,6 @@ export default function PayHistoryPage() {
   const payStubsToDisplay = (role === 'Admin' || role === 'Manager')
     ? allPayStubs
         .filter(stub => selectedEmployee === 'all' || stub.employee === selectedEmployee)
-        .filter(stub => {
-          const stubDate = new Date(stub.payDate);
-          if (startDate && stubDate < startDate) return false;
-          if (endDate) {
-            // Include the end date in the range
-            const endOfDay = new Date(endDate);
-            endOfDay.setHours(23, 59, 59, 999);
-            if (stubDate > endOfDay) return false;
-          }
-          return true;
-        })
     : staffPayStubs;
     
   const getGrossPay = () => {
@@ -222,18 +208,16 @@ export default function PayHistoryPage() {
                                 )}
                             </Button>
                             </PopoverTrigger>
-                            <DialogPortal>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={payPeriod?.from}
-                                    selected={payPeriod}
-                                    onSelect={setPayPeriod}
-                                    numberOfMonths={2}
-                                />
-                                </PopoverContent>
-                            </DialogPortal>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={payPeriod?.from}
+                                selected={payPeriod}
+                                onSelect={setPayPeriod}
+                                numberOfMonths={2}
+                            />
+                            </PopoverContent>
                         </Popover>
                     </div>
                 </div>
@@ -287,7 +271,7 @@ export default function PayHistoryPage() {
             </div>
              {isAdminOrManager && (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
-                    <Label className="text-sm font-medium whitespace-nowrap">Filter by:</Label>
+                    <Label className="text-sm font-medium whitespace-nowrap">Filter by Employee:</Label>
                     <select
                         value={selectedEmployee}
                         onChange={(e) => setSelectedEmployee(e.target.value)}
@@ -298,40 +282,6 @@ export default function PayHistoryPage() {
                             <option key={id} value={name}>{name}</option>
                         ))}
                     </select>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <Button
-                            variant={"outline"}
-                            className={cn(
-                            "w-full sm:w-auto justify-start text-left font-normal",
-                            !startDate && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {startDate ? format(startDate, "LLL dd, y") : <span>Start date</span>}
-                        </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                        <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
-                        </PopoverContent>
-                    </Popover>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <Button
-                            variant={"outline"}
-                            className={cn(
-                            "w-full sm:w-auto justify-start text-left font-normal",
-                            !endDate && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {endDate ? format(endDate, "LLL dd, y") : <span>End date</span>}
-                        </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                        <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
-                        </PopoverContent>
-                    </Popover>
                 </div>
             )}
           </div>
@@ -380,6 +330,3 @@ export default function PayHistoryPage() {
     </>
   );
 }
-
-
-    
