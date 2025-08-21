@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -41,7 +42,6 @@ const allNavItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Dashboard', roles: ['Admin', 'Manager', 'Staff'] },
   { href: '/pay-history', icon: History, label: 'Pay History', roles: ['Admin', 'Manager', 'Staff'] },
   { href: '/messaging', icon: MessageSquare, label: 'Messages', roles: ['Admin', 'Manager', 'Staff'] },
-  { href: '/onboarding', icon: Users, label: 'Employees', roles: ['Admin', 'Manager'] },
   { href: '/schedule-assistant', icon: Bot, label: 'AI Assistant', roles: ['Admin', 'Manager'] },
 ];
 
@@ -72,8 +72,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const navItems = allNavItems.filter(item => item.roles.includes(role));
 
   const createHrefWithRole = (href: string) => {
-    const params = searchParams.toString();
-    return params ? `${href}?${params}` : href;
+    const params = new URLSearchParams(searchParams.toString());
+    return `${href}?${params.toString()}`;
   }
 
 

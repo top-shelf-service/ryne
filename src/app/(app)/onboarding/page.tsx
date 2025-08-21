@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -13,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const steps = [
   { id: '01', name: 'Personal Information', fields: ['fullName', 'address'] },
@@ -40,6 +42,7 @@ const OnboardingSchema = z.object({
 
 export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = React.useState(0);
+  const router = useRouter();
   
   const methods = useForm<z.infer<typeof OnboardingSchema>>({
     resolver: zodResolver(OnboardingSchema),
@@ -67,6 +70,12 @@ export default function OnboardingPage() {
     if (!output) return;
 
     if (currentStep < steps.length - 1) {
+      if (currentStep === 0) {
+        // After personal info, redirect to dashboard as admin.
+        // This is a placeholder for the "Create Org" flow.
+        router.push('/dashboard?role=Admin');
+        return;
+      }
       setCurrentStep(step => step + 1);
     }
   };
@@ -80,6 +89,7 @@ export default function OnboardingPage() {
   const onSubmit = (data: z.infer<typeof OnboardingSchema>) => {
     console.log(data);
     alert('Employee onboarded successfully!');
+    router.push('/dashboard?role=Staff');
   }
 
   return (

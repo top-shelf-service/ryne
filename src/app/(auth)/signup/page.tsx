@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -31,9 +32,9 @@ export default function SignupPage() {
     console.log('Creating account with:', { name, email, password });
     toast({
       title: 'Account Created',
-      description: 'Redirecting to your dashboard...',
+      description: 'Please choose how to get started.',
     });
-    router.push('/dashboard');
+    router.push('/organization-setup');
   };
 
   return (
