@@ -35,6 +35,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Suspense } from 'react';
 
 const allNavItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Dashboard', roles: ['Admin', 'Manager', 'Staff'] },
@@ -43,17 +44,16 @@ const allNavItems = [
   { href: '/schedule-assistant', icon: Bot, label: 'AI Assistant', roles: ['Admin', 'Manager'] },
 ];
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+
+function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { setTheme } = useTheme();
-  
-  // Adjusted to default to 'Staff' and update URL if 'role' is missing
-  const role = searchParams.get('role') || 'Staff'; 
+
+  const role = searchParams.get('role') || 'Staff';
 
   React.useEffect(() => {
-    // This effect now correctly checks if the role exists and only replaces the URL if it's missing.
     if (!searchParams.has('role')) {
         const params = new URLSearchParams(searchParams.toString());
         params.set('role', 'Staff');
@@ -64,8 +64,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const setRole = (newRole: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('role', newRole);
-    // When changing roles, we now use `push` to create a new entry in the history,
-    // which feels more natural for navigation.
     router.push(`${pathname}?${params.toString()}`);
   }
 
@@ -73,7 +71,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const createHrefWithRole = (href: string) => {
     const params = searchParams.toString();
-    return `${href}?${params}`;
+    return params ? `${href}?${params}` : href;
   }
 
 
@@ -215,4 +213,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   );
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AppLayoutContent>{children}</AppLayoutContent>
+    </Suspense>
+  )
 }
