@@ -111,7 +111,7 @@ export default function PayHistoryPage() {
       setPayPeriodStartDate(startDate);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payPeriodStartDate, payPeriodEndDate, payFrequency, lastEdited]);
+  }, [payFrequency, lastEdited, payPeriodStartDate, payPeriodEndDate]);
 
   const handleStartDateSelect = (date: Date | undefined) => {
     setPayPeriodStartDate(date);
@@ -404,3 +404,5 @@ export default function PayHistoryPage() {
     </>
   );
 }
+
+    
