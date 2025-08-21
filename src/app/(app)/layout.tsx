@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -38,7 +39,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const allNavItems = [
   { href: '/dashboard', icon: LayoutGrid, label: 'Dashboard', roles: ['Admin', 'Manager', 'Staff'] },
-  { href: '/schedules', icon: CalendarDays, label: 'Schedules', roles: ['Admin', 'Manager', 'Staff'] },
   { href: '/pay-history', icon: History, label: 'Pay History', roles: ['Admin', 'Manager', 'Staff'] },
   { href: '/messaging', icon: MessageSquare, label: 'Messages', roles: ['Admin', 'Manager', 'Staff'] },
   { href: '/schedule-assistant', icon: Bot, label: 'AI Assistant', roles: ['Admin', 'Manager'] },
