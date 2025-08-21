@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, User } from 'firebase/auth';
 
 const GoogleIcon = (props: React.ComponentProps<'svg'>) => (
     <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -25,29 +25,36 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
+    const checkRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
           toast({
             title: 'Login Successful',
-            description: 'Redirecting to your dashboard...',
+            description: `Welcome, ${result.user.displayName}! Redirecting...`,
           });
           router.push('/dashboard');
+        } else {
+          setLoading(false);
         }
-      })
-      .catch((error) => {
+      } catch (error: any) {
         toast({
           variant: 'destructive',
           title: 'Google Sign-In Failed',
           description: error.message,
         });
-      });
+        setLoading(false);
+      }
+    };
+    checkRedirectResult();
   }, [router, toast]);
 
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
+    setLoading(true);
     try {
       await signInWithRedirect(auth, provider);
     } catch (error: any) {
@@ -56,6 +63,7 @@ export default function LoginPage() {
         title: 'Google Sign-In Failed',
         description: error.message,
       });
+      setLoading(false);
     }
   };
 
@@ -93,6 +101,13 @@ export default function LoginPage() {
     });
   };
 
+  if (loading) {
+    return (
+        <Card className="w-full max-w-md shadow-lg flex items-center justify-center h-96">
+            <p>Loading...</p>
+        </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-md shadow-lg">
