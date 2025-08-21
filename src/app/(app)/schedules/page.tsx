@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -49,6 +50,10 @@ export default function SchedulesPage() {
   const handleEditClick = (shift: Shift) => {
     setSelectedShift(shift);
     setIsEditShiftOpen(true);
+  }
+  
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    setDate(selectedDate);
   }
 
   return (
@@ -122,7 +127,7 @@ export default function SchedulesPage() {
                <Calendar
                 mode="single"
                 selected={date}
-                onSelect={setDate}
+                onSelect={handleDateSelect}
                 className="w-full"
                 modifiers={{
                   // Highlight days with shifts

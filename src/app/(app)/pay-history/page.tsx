@@ -118,13 +118,17 @@ export default function PayHistoryPage() {
   }, [payFrequency, lastEdited, payPeriodStartDate, payPeriodEndDate]);
 
   const handleStartDateSelect = (date: Date | undefined) => {
-    setPayPeriodStartDate(date);
-    setLastEdited('start');
+    if (date) {
+        setPayPeriodStartDate(date);
+        setLastEdited('start');
+    }
   };
 
   const handleEndDateSelect = (date: Date | undefined) => {
-    setPayPeriodEndDate(date);
-    setLastEdited('end');
+    if (date) {
+        setPayPeriodEndDate(date);
+        setLastEdited('end');
+    }
   };
 
   const handleFrequencyChange = (value: 'weekly' | 'bi-weekly' | 'semi-monthly' | 'monthly') => {
@@ -143,19 +147,42 @@ export default function PayHistoryPage() {
     : staffPayStubs;
     
   const getGrossPay = () => {
-    if (!payPeriodStartDate || !payPeriodEndDate || !newStubEmployee || !newStubRate) {
+    if (!payPeriodEndDate || !newStubEmployee || !newStubRate) {
         return 0;
     }
+    
+    let startDate;
 
-    // Ensure start date is before end date
-    const startDate = payPeriodStartDate < payPeriodEndDate ? payPeriodStartDate : payPeriodEndDate;
-    const endDate = payPeriodStartDate < payPeriodEndDate ? payPeriodEndDate : payPeriodStartDate;
+    switch (payFrequency) {
+        case 'weekly':
+            startDate = subDays(payPeriodEndDate, 6);
+            break;
+        case 'bi-weekly':
+            startDate = subDays(payPeriodEndDate, 13);
+            break;
+        case 'semi-monthly':
+           if (payPeriodEndDate.getDate() <= 15) {
+                startDate = startOfMonth(payPeriodEndDate);
+            } else {
+                startDate = new Date(payPeriodEndDate.getFullYear(), payPeriodEndDate.getMonth(), 16);
+            }
+          break;
+        case 'monthly':
+          startDate = startOfMonth(payPeriodEndDate);
+          break;
+        default:
+            startDate = payPeriodStartDate;
+            break;
+    }
 
+
+    if (!startDate) return 0;
+    
     const relevantShifts = allShifts.filter(shift => {
         const shiftDateOnly = new Date(shift.date.getFullYear(), shift.date.getMonth(), shift.date.getDate());
         return shift.employee === newStubEmployee &&
             shiftDateOnly >= startDate &&
-            shiftDateOnly <= endDate;
+            shiftDateOnly <= payPeriodEndDate;
     });
 
     const totalHours = relevantShifts.reduce((acc, shift) => acc + calculateHours(shift.time), 0);
@@ -240,7 +267,7 @@ export default function PayHistoryPage() {
                 Add Pay Stub
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Add New Pay Stub</DialogTitle>
                 <DialogDescription>
@@ -248,78 +275,76 @@ export default function PayHistoryPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="employee-name">Employee</Label>
-                        <select
-                            id="employee-name"
-                            value={newStubEmployee}
-                            onChange={(e) => setNewStubEmployee(e.target.value)}
-                            className="w-full p-2 border rounded-md bg-background text-sm"
-                        >
-                            {Object.keys(employees).map((name) => (
-                                <option key={name} value={name}>{name}</option>
-                            ))}
-                        </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="employee-name">Employee</Label>
+                            <select
+                                id="employee-name"
+                                value={newStubEmployee}
+                                onChange={(e) => setNewStubEmployee(e.target.value)}
+                                className="w-full p-2 border rounded-md bg-background text-sm"
+                            >
+                                {Object.keys(employees).map((name) => (
+                                    <option key={name} value={name}>{name}</option>
+                                ))}
+                            </select>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="pay-period-start">Period Start Date</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <Button id="start-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !payPeriodStartDate && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {payPeriodStartDate ? format(payPeriodStartDate, "LLL dd, y") : <span>Pick a date</span>}
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="single" selected={payPeriodStartDate} onSelect={handleStartDateSelect} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="location">State</Label>
+                            <Input id="location" value={newStubState} onChange={(e) => setNewStubState(e.target.value)} placeholder="e.g., CA" />
+                        </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="pay-frequency">Pay Frequency</Label>
-                        <RadioGroup
-                            value={payFrequency}
-                            onValueChange={handleFrequencyChange}
-                            className="flex items-center gap-4 flex-wrap"
-                        >
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="weekly" id="weekly" /><Label htmlFor="weekly" className="font-normal">W</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="bi-weekly" id="bi-weekly" /><Label htmlFor="bi-weekly" className="font-normal">B</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="semi-monthly" id="semi-monthly" /><Label htmlFor="semi-monthly" className="font-normal">S</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="monthly" id="monthly" /><Label htmlFor="monthly" className="font-normal">M</Label></div>
-                        </RadioGroup>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="pay-frequency">Pay Frequency</Label>
+                            <RadioGroup
+                                value={payFrequency}
+                                onValueChange={handleFrequencyChange}
+                                className="flex items-center gap-4 flex-wrap"
+                            >
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="weekly" id="weekly" /><Label htmlFor="weekly" className="font-normal">Weekly</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="bi-weekly" id="bi-weekly" /><Label htmlFor="bi-weekly" className="font-normal">Bi-Weekly</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="semi-monthly" id="semi-monthly" /><Label htmlFor="semi-monthly" className="font-normal">Semi-Monthly</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="monthly" id="monthly" /><Label htmlFor="monthly" className="font-normal">Monthly</Label></div>
+                            </RadioGroup>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="pay-period-end">Period End Date</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <Button id="end-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !payPeriodEndDate && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {payPeriodEndDate ? format(payPeriodEndDate, "LLL dd, y") : <span>Pick a date</span>}
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="single" selected={payPeriodEndDate} onSelect={handleEndDateSelect} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="rate">Rate ($/hr)</Label>
+                            <Input id="rate" type="number" value={newStubRate} onChange={(e) => setNewStubRate(parseFloat(e.target.value) || 0)} />
+                        </div>
                     </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-2">
-                        <Label htmlFor="pay-period-start">Period Start Date</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button id="start-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !payPeriodStartDate && "text-muted-foreground")}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {payPeriodStartDate ? format(payPeriodStartDate, "LLL dd, y") : <span>Pick a date</span>}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={payPeriodStartDate} onSelect={handleStartDateSelect} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="pay-period-end">Period End Date</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button id="end-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !payPeriodEndDate && "text-muted-foreground")}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {payPeriodEndDate ? format(payPeriodEndDate, "LLL dd, y") : <span>Pick a date</span>}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={payPeriodEndDate} onSelect={handleEndDateSelect} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                </div>
-                
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="location">State</Label>
-                        <Input id="location" value={newStubState} onChange={(e) => setNewStubState(e.target.value)} placeholder="e.g., CA" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="rate">Rate ($/hr)</Label>
-                        <Input id="rate" type="number" value={newStubRate} onChange={(e) => setNewStubRate(parseFloat(e.target.value) || 0)} />
-                    </div>
-                 </div>
 
-                 <div className="pt-2">
+                 <div className="pt-4">
                     <Button onClick={handleAiCalculate} disabled={isCalculating} className="w-full bg-accent hover:bg-accent/90">
                         {isCalculating ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2" />}
                         Calculate with AI
@@ -416,4 +441,3 @@ export default function PayHistoryPage() {
     </>
   );
 }
-
