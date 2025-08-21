@@ -1,7 +1,8 @@
+
 // src/ai/flows/calculate-pay-stub.ts
 'use server';
 /**
- * @fileOverview An AI agent that calculates payroll deductions and net pay.
+ * @fileOverview An AI agent that calculates payroll deductions and net pay using an employee's stored data.
  *
  * - calculatePayStub - A function that calculates pay stub details.
  * - CalculatePayStubInput - The input type for the calculatePayStub function.
@@ -11,7 +12,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { taxBrackets, additionalMedicareThresholds, socialSecurityRate, socialSecurityWageLimit, medicareRate, additionalMedicareRate } from '@/lib/tax-data';
-
+import { employees } from '@/lib/data';
 
 // Helper function for state tax, as it's a simple mock
 const calculateStateTax = (state: string, taxableIncome: number) => {
@@ -22,7 +23,7 @@ const calculateStateTax = (state: string, taxableIncome: number) => {
 };
 
 
-// The new, self-contained tool for all payroll calculations
+// The self-contained tool for all payroll calculations
 const calculatePayrollDetails = ai.defineTool(
     {
       name: 'calculatePayrollDetails',
@@ -109,19 +110,10 @@ const calculatePayrollDetails = ai.defineTool(
 
 
 const CalculatePayStubInputSchema = z.object({
+  employeeId: z.string().describe("The unique ID of the employee."),
   grossPayFromHours: z.number().describe('The gross pay calculated from hours worked.'),
   ptoHours: z.number().describe('Number of Paid Time Off hours to include.'),
-  hourlyRate: z.number().describe('The employee\'s hourly wage.'),
   payFrequency: z.enum(['Weekly', 'Bi-Weekly']),
-  yearToDateGross: z.number(),
-  filingStatus: z.enum(['Single or Married filing separately', 'Married filing jointly', 'Head of Household']),
-  isMultipleJobsChecked: z.boolean(),
-  dependentsAmount: z.number(),
-  otherIncome: z.number(),
-  otherDeductions: z.number(),
-  extraWithholding: z.number(),
-  preTaxDeductions: z.number(),
-  location: z.string().describe('The US state for tax calculation (e.g., "CA").'),
 });
 export type CalculatePayStubInput = z.infer<typeof CalculatePayStubInputSchema>;
 
@@ -145,33 +137,35 @@ export async function calculatePayStub(input: CalculatePayStubInput): Promise<Ca
   return calculatePayStubFlow(input);
 }
 
+// Create a new schema that includes the resolved employee data for the prompt
+const PromptInputSchema = CalculatePayStubInputSchema.extend({
+    employeeData: z.any()
+});
+
+
 const prompt = ai.definePrompt({
   name: 'calculatePayStubPrompt',
-  input: { schema: CalculatePayStubInputSchema },
+  input: { schema: PromptInputSchema },
   output: { schema: CalculatePayStubOutputSchema },
   tools: [calculatePayrollDetails],
-  prompt: `You are a payroll calculation expert. Your task is to calculate the net pay for an employee.
+  prompt: `You are a payroll calculation expert. Your task is to calculate the net pay for an employee based on their stored W-4 information and the current pay period details.
 
-  1.  Calculate the total gross pay by adding the pay from worked hours to the pay from any PTO hours.
-  2.  Use the 'calculatePayrollDetails' tool to get the detailed tax breakdown based on the total gross pay and employee's W-4 information.
-  3.  Sum all deductions (pre-tax and all calculated taxes).
-  4.  Subtract total deductions from the total gross pay to calculate the final net pay.
-  5.  Provide a brief reasoning for your calculation, explicitly mentioning how PTO was handled.
+  1.  Retrieve the employee's data.
+  2.  Calculate the total gross pay by adding the pay from worked hours to the pay from any PTO hours. The hourly rate is in the employee data.
+  3.  Use the 'calculatePayrollDetails' tool to get the detailed tax breakdown. You must pass all the required fields to the tool from the employee's record and the current pay period details.
+  4.  Sum all deductions (pre-tax and all calculated taxes).
+  5.  Subtract total deductions from the total gross pay to calculate the final net pay.
+  6.  Provide a brief reasoning for your calculation, explicitly mentioning how PTO was handled.
   
-  **Employee Details:**
+  **Pay Period Details:**
   - Gross Pay from Hours Worked: {{{grossPayFromHours}}}
   - PTO Hours: {{{ptoHours}}}
-  - Hourly Rate: {{{hourlyRate}}}
-  - Location: {{{location}}}
   - Pay Frequency: {{{payFrequency}}}
-  - YTD Gross: {{{yearToDateGross}}}
-  - Filing Status: {{{filingStatus}}}
-  - Multiple Jobs?: {{{isMultipleJobsChecked}}}
-  - W-4 Step 3 (Dependents): {{{dependentsAmount}}}
-  - W-4 Step 4a (Other Income): {{{otherIncome}}}
-  - W-4 Step 4b (Deductions): {{{otherDeductions}}}
-  - W-4 Step 4c (Extra Withholding): {{{extraWithholding}}}
-  - Pre-Tax Deductions (Health Ins, etc.): {{{preTaxDeductions}}}
+  
+  **Employee Onboarding Data:**
+  \`\`\`json
+  {{{json employeeData}}}
+  \`\`\`
   
   Return the full breakdown in the required JSON format.
   `,
@@ -183,10 +177,20 @@ const calculatePayStubFlow = ai.defineFlow(
     inputSchema: CalculatePayStubInputSchema,
     outputSchema: CalculatePayStubOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    // Find the employee from our "database"
+    const employee = employees.find(e => e.id === input.employeeId);
+    if (!employee) {
+        throw new Error(`Employee with ID ${input.employeeId} not found.`);
+    }
+
     // The prompt now handles the entire calculation by using the tool,
-    // so we can just return its output directly.
+    // so we just need to pass the resolved data to it.
+    const {output} = await prompt({
+        ...input,
+        employeeData: employee,
+    });
+    
     return output!;
   }
 );

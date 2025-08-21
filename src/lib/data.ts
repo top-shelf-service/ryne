@@ -1,4 +1,5 @@
 
+
 export type Shift = {
   id: number;
   employee: string;
@@ -34,9 +35,49 @@ export const allPayStubsData = [
 ].sort((a,b) => new Date(b.payDate).getTime() - new Date(a.payDate).getTime());
 
 export const employees = [
-  { id: 'E1', name: 'Alice', ptoBalanceHours: 40 },
-  { id: 'E2', name: 'Bob', ptoBalanceHours: 80 },
-  { id: 'E3', name: 'Charlie', ptoBalanceHours: 16 },
+  {
+    id: 'E1',
+    name: 'Alice',
+    ptoBalanceHours: 40,
+    wageRate: 20,
+    state: 'CA',
+    yearToDateGross: 3200,
+    filingStatus: 'Single or Married filing separately' as const,
+    isMultipleJobsChecked: false,
+    dependentsAmount: 0,
+    otherIncome: 0,
+    otherDeductions: 0,
+    extraWithholding: 0,
+    preTaxDeductions: 100,
+  },
+  {
+    id: 'E2',
+    name: 'Bob',
+    ptoBalanceHours: 80,
+    wageRate: 25,
+    state: 'NY',
+    yearToDateGross: 4000,
+    filingStatus: 'Married filing jointly' as const,
+    isMultipleJobsChecked: true,
+    dependentsAmount: 2000,
+    otherIncome: 0,
+    otherDeductions: 0,
+    extraWithholding: 50,
+    preTaxDeductions: 150,
+  },
+  {
+    id: 'E3',
+    name: 'Charlie',
+    ptoBalanceHours: 16,
+    wageRate: 18,
+    state: 'TX',
+    yearToDateGross: 2880,
+    filingStatus: 'Head of Household' as const,
+    isMultipleJobsChecked: false,
+    dependentsAmount: 500,
+    otherIncome: 100,
+    otherDeductions: 0,
+    extraWithholding: 0,
+    preTaxDeductions: 75,
+  },
 ];
-
-    

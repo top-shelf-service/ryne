@@ -46,7 +46,7 @@ export default function PayHistoryPage() {
   const { toast } = useToast();
   
   // Dialog state
-  const [isAddStubOpen, setIsAddStubOpen] = React.useState(false);
+  const [isGenerateStubOpen, setIsGenerateStubOpen] = React.useState(false);
   
   // Data state
   const [selectedEmployee, setSelectedEmployee] = React.useState<string>('all');
@@ -55,17 +55,7 @@ export default function PayHistoryPage() {
   // Form state for the dialog
   const [formState, setFormState] = React.useState({
     employee: 'Alice',
-    rate: 20,
-    state: 'CA',
     payFrequency: 'Bi-Weekly' as 'Weekly' | 'Bi-Weekly',
-    ytdGross: 3200, // Mock YTD
-    filingStatus: 'Single or Married filing separately' as 'Single or Married filing separately' | 'Married filing jointly' | 'Head of Household',
-    isMultipleJobsChecked: false,
-    dependentsAmount: 0,
-    otherIncome: 0,
-    otherDeductions: 0,
-    extraWithholding: 0,
-    preTaxDeductions: 100, // Mock for health insurance etc.
     ptoHours: 8,
   });
 
@@ -109,10 +99,6 @@ export default function PayHistoryPage() {
       [name]: type === 'number' ? parseFloat(value) || 0 : value,
     }));
   };
-   const handleCheckboxChange = (checked: boolean | 'indeterminate') => {
-      setFormState(prev => ({ ...prev, isMultipleJobsChecked: !!checked }));
-  }
-
 
   const staffPayStubs = allPayStubs.filter(stub => stub.employee === 'Alice');
 
@@ -132,7 +118,9 @@ export default function PayHistoryPage() {
     });
 
     const totalHours = relevantShifts.reduce((acc, shift) => acc + calculateHours(shift.time), 0);
-    return totalHours * formState.rate;
+    const employeeData = employees.find(e => e.name === formState.employee);
+    const rate = employeeData?.wageRate || 0;
+    return totalHours * rate;
   }
   
   const handleAiCalculate = async () => {
@@ -149,21 +137,18 @@ export default function PayHistoryPage() {
     setIsCalculating(true);
     setAiResult(null);
 
+    const employeeData = employees.find(e => e.name === formState.employee);
+    if (!employeeData) {
+        toast({ variant: 'destructive', title: "Employee not found!" });
+        setIsCalculating(false);
+        return;
+    }
+
     const result = await calculatePayStubAction({ 
+        employeeId: employeeData.id,
         grossPayFromHours: grossPayFromHours,
-        hourlyRate: formState.rate,
-        location: formState.state,
         ptoHours: formState.ptoHours,
-        // Pass all the other form fields
         payFrequency: formState.payFrequency,
-        yearToDateGross: formState.ytdGross,
-        filingStatus: formState.filingStatus,
-        isMultipleJobsChecked: formState.isMultipleJobsChecked,
-        dependentsAmount: formState.dependentsAmount,
-        otherIncome: formState.otherIncome,
-        otherDeductions: formState.otherDeductions,
-        extraWithholding: formState.extraWithholding,
-        preTaxDeductions: formState.preTaxDeductions,
     });
     
     if (result.error) {
@@ -188,19 +173,21 @@ export default function PayHistoryPage() {
         });
         return;
     }
+    const employeeData = employees.find(e => e.name === formState.employee);
+    const rate = employeeData?.wageRate || 0;
 
     const newStub = {
         id: allPayStubs.length + 1,
         employee: formState.employee,
         payPeriod: `${format(payPeriodStartDate, "LLL d, y")} - ${format(payPeriodEndDate, "LLL d, y")}`,
         payDate: format(new Date(), 'yyyy-MM-dd'),
-        hours: (aiResult.grossPay - (formState.ptoHours * formState.rate)) / formState.rate,
-        rate: formState.rate,
+        hours: (aiResult.grossPay - (formState.ptoHours * rate)) / rate,
+        rate: rate,
         total: aiResult.netPay,
     };
 
     setAllPayStubs(prevStubs => [newStub, ...prevStubs].sort((a,b) => new Date(b.payDate).getTime() - new Date(a.payDate).getTime()));
-    setIsAddStubOpen(false);
+    setIsGenerateStubOpen(false);
   };
   
   const isAdminOrManager = role === 'Admin' || role === 'Manager';
@@ -213,36 +200,32 @@ export default function PayHistoryPage() {
         description={ isAdminOrManager ? "View and manage employee pay stubs." : "Review your past pay stubs."}
       >
         {isAdminOrManager && (
-          <Dialog open={isAddStubOpen} onOpenChange={setIsAddStubOpen}>
+          <Dialog open={isGenerateStubOpen} onOpenChange={setIsGenerateStubOpen}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle />
-                Add Pay Stub
+                Generate Pay Stub
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-4xl">
+            <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Add New Pay Stub</DialogTitle>
+                <DialogTitle>Generate New Pay Stub</DialogTitle>
                 <DialogDescription>
-                  Calculate and generate a new pay stub using AI-powered deductions.
+                  Calculate and generate a new pay stub using the employee's onboarded W-4 information.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
                 {/* Column 1: Pay Info */}
                 <div className="space-y-4">
-                    <h4 className="font-semibold text-lg border-b pb-2">Pay Details</h4>
+                    <h4 className="font-semibold text-lg border-b pb-2">Pay Period Details</h4>
                     <div className="space-y-2">
                         <Label htmlFor="employee">Employee</Label>
                         <select id="employee" name="employee" value={formState.employee} onChange={handleFormChange} className="w-full p-2 border rounded-md bg-background text-sm">
                             {employees.map((emp) => (<option key={emp.id} value={emp.name}>{emp.name}</option>))}
                         </select>
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="rate">Rate ($/hr)</Label>
-                        <Input id="rate" name="rate" type="number" value={formState.rate} onChange={handleFormChange} />
-                    </div>
                     <div className="space-y-2">
-                        <Label htmlFor="ptoHours">PTO Hours</Label>
+                        <Label htmlFor="ptoHours">PTO Hours to Apply</Label>
                         <Input id="ptoHours" name="ptoHours" type="number" value={formState.ptoHours} onChange={handleFormChange} />
                     </div>
                      <div className="space-y-2">
@@ -275,65 +258,20 @@ export default function PayHistoryPage() {
                             </Popover>
                         </div>
                     </div>
-                </div>
-
-                {/* Column 2: W-4 Info */}
-                 <div className="space-y-4">
-                    <h4 className="font-semibold text-lg border-b pb-2">W-4 Information</h4>
-                    <div className="space-y-2">
-                        <Label htmlFor="filingStatus">Filing Status</Label>
-                        <select id="filingStatus" name="filingStatus" value={formState.filingStatus} onChange={handleFormChange} className="w-full p-2 border rounded-md bg-background text-sm">
-                            <option>Single or Married filing separately</option>
-                            <option>Married filing jointly</option>
-                            <option>Head of Household</option>
-                        </select>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="dependentsAmount">Dependents (Step 3)</Label>
-                        <Input id="dependentsAmount" name="dependentsAmount" type="number" value={formState.dependentsAmount} onChange={handleFormChange}/>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="otherIncome">Other Income (Step 4a)</Label>
-                        <Input id="otherIncome" name="otherIncome" type="number" value={formState.otherIncome} onChange={handleFormChange}/>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="otherDeductions">Deductions (Step 4b)</Label>
-                        <Input id="otherDeductions" name="otherDeductions" type="number" value={formState.otherDeductions} onChange={handleFormChange}/>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="extraWithholding">Extra Withholding (Step 4c)</Label>
-                        <Input id="extraWithholding" name="extraWithholding" type="number" value={formState.extraWithholding} onChange={handleFormChange}/>
-                    </div>
-                     <div className="flex items-center space-x-2 pt-2">
-                        <Checkbox id="isMultipleJobsChecked" name="isMultipleJobsChecked" onCheckedChange={handleCheckboxChange} checked={formState.isMultipleJobsChecked} />
-                        <Label htmlFor="isMultipleJobsChecked" className="font-normal">Multiple jobs or spouse works?</Label>
-                    </div>
-                </div>
-
-                {/* Column 3: Other Deductions & Calculation */}
-                 <div className="space-y-4">
-                    <h4 className="font-semibold text-lg border-b pb-2">Other Details</h4>
-                    <div className="space-y-2">
-                        <Label htmlFor="state">State</Label>
-                        <Input id="state" name="state" value={formState.state} onChange={handleFormChange} placeholder="e.g., CA" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="ytdGross">Year-to-Date Gross</Label>
-                        <Input id="ytdGross" name="ytdGross" type="number" value={formState.ytdGross} onChange={handleFormChange} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="preTaxDeductions">Pre-Tax Deductions</Label>
-                        <Input id="preTaxDeductions" name="preTaxDeductions" type="number" value={formState.preTaxDeductions} onChange={handleFormChange} placeholder="e.g., Health Ins." />
-                    </div>
-                    <div className="pt-4">
+                     <div className="pt-4">
                         <Button onClick={handleAiCalculate} disabled={isCalculating} className="w-full bg-accent hover:bg-accent/90">
                             {isCalculating ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2" />}
                             Calculate with AI
                         </Button>
                     </div>
-                    {aiResult && (
+                </div>
+
+                {/* Column 2: Calculation Result */}
+                 <div className="space-y-4">
+                    <h4 className="font-semibold text-lg border-b pb-2">Calculation Result</h4>
+                    {isCalculating && <div className='flex justify-center items-center h-40'><Loader2 className="animate-spin" /></div>}
+                    {aiResult && !isCalculating && (
                         <div className="space-y-2 rounded-lg border bg-muted/50 p-4">
-                            <h4 className="font-semibold">Calculation Result</h4>
                             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                                 <span>Gross Pay:</span><span className="text-right font-medium">${aiResult.grossPay.toFixed(2)}</span>
                                 <span className="pl-2 text-muted-foreground">Pre-Tax Deductions:</span><span className="text-right font-medium">-${aiResult.deductions.preTax.toFixed(2)}</span>
@@ -346,10 +284,15 @@ export default function PayHistoryPage() {
                             <p className="text-xs text-muted-foreground italic pt-2">{aiResult.reasoning}</p>
                         </div>
                     )}
+                     {!aiResult && !isCalculating && (
+                        <div className="flex items-center justify-center h-40 text-center text-sm text-muted-foreground border rounded-lg bg-muted/20">
+                           <p>Enter pay period details and click "Calculate with AI" to see the results.</p>
+                        </div>
+                    )}
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddStubOpen(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setIsGenerateStubOpen(false)}>Cancel</Button>
                 <Button type="submit" onClick={handleAddPayStub} disabled={!aiResult || isCalculating}>Save Pay Stub</Button>
               </DialogFooter>
             </DialogContent>
@@ -374,8 +317,8 @@ export default function PayHistoryPage() {
                         className="p-2 border rounded-md bg-background text-sm w-full sm:w-auto"
                     >
                         <option value="all">All Employees</option>
-                        {Object.entries(employees).map(([name, id]) => (
-                            <option key={id} value={name}>{name}</option>
+                        {employees.map((emp) => (
+                            <option key={emp.id} value={emp.name}>{emp.name}</option>
                         ))}
                     </select>
                 </div>
