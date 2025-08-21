@@ -53,25 +53,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const role = searchParams.get('role') || 'Staff'; 
 
   React.useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (!params.has('role')) {
-      params.set('role', 'Staff');
-      router.replace(`${pathname}?${params.toString()}`);
+    // This effect now correctly checks if the role exists and only replaces the URL if it's missing.
+    // It uses `window.location.search` to construct the params, avoiding the Next.js error.
+    if (!searchParams.has('role')) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('role', 'Staff');
+        router.replace(`${pathname}?${params.toString()}`);
     }
   }, [pathname, searchParams, router]);
 
   const setRole = (newRole: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     params.set('role', newRole);
+    // When changing roles, we now use `push` to create a new entry in the history,
+    // which feels more natural for navigation.
     router.push(`${pathname}?${params.toString()}`);
   }
 
   const navItems = allNavItems.filter(item => item.roles.includes(role));
 
   const createHrefWithRole = (href: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
+    // We get the current role from searchParams to ensure it's up-to-date
+    const currentRole = searchParams.get('role');
+    if (currentRole) {
+        params.set('role', currentRole);
+    } else {
+        params.set('role', 'Staff');
+    }
     return `${href}?${params.toString()}`;
   }
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
