@@ -113,10 +113,10 @@ export default function MessagingPage() {
         title="In-App Messaging"
         description="Communicate with your team members directly."
       />
-      <Card className="flex-grow flex">
-        <div className="grid grid-cols-1 md:grid-cols-3 w-full">
+      <Card className="flex-grow flex flex-col">
+        <div className="grid grid-cols-1 md:grid-cols-3 w-full flex-grow">
           <div className="col-span-1 border-r border-border flex flex-col">
-            <CardHeader>
+            <CardHeader className="flex-shrink-0">
               <CardTitle>Conversations</CardTitle>
             </CardHeader>
             <div className="flex-grow overflow-y-auto">
