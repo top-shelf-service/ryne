@@ -171,46 +171,23 @@ export default function PayHistoryPage() {
                   Calculate and generate a new pay stub using AI-powered deductions.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="employee-name" className="text-right">
-                    Employee
-                  </Label>
-                   <select
-                        id="employee-name"
-                        value={newStubEmployee}
-                        onChange={(e) => setNewStubEmployee(e.target.value)}
-                        className="col-span-3 p-2 border rounded-md bg-background text-sm"
-                    >
-                        {Object.keys(employees).map((name) => (
-                            <option key={name} value={name}>{name}</option>
-                        ))}
-                    </select>
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="pay-frequency" className="text-right">
-                        Pay Frequency
-                    </Label>
-                    <RadioGroup
-                        defaultValue="bi-weekly"
-                        onValueChange={(value: 'weekly' | 'bi-weekly') => setPayFrequency(value)}
-                        className="col-span-3 flex items-center gap-4"
-                    >
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="weekly" id="weekly" />
-                            <Label htmlFor="weekly">Weekly</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="bi-weekly" id="bi-weekly" />
-                            <Label htmlFor="bi-weekly">Bi-weekly</Label>
-                        </div>
-                    </RadioGroup>
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="pay-period-end" className="text-right">
-                       Period End
-                    </Label>
-                    <div className="col-span-3">
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="employee-name">Employee</Label>
+                        <select
+                            id="employee-name"
+                            value={newStubEmployee}
+                            onChange={(e) => setNewStubEmployee(e.target.value)}
+                            className="w-full p-2 border rounded-md bg-background text-sm"
+                        >
+                            {Object.keys(employees).map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="pay-period-end">Period End Date</Label>
                         <Popover>
                             <PopoverTrigger asChild>
                             <Button
@@ -236,26 +213,45 @@ export default function PayHistoryPage() {
                         </Popover>
                     </div>
                 </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="location" className="text-right">
-                        State
-                    </Label>
-                    <Input id="location" value={newStubState} onChange={(e) => setNewStubState(e.target.value)} className="col-span-3" placeholder="e.g., CA" />
+
+                <div className="space-y-2">
+                    <Label htmlFor="pay-frequency">Pay Frequency</Label>
+                    <RadioGroup
+                        defaultValue="bi-weekly"
+                        value={payFrequency}
+                        onValueChange={(value: 'weekly' | 'bi-weekly') => setPayFrequency(value)}
+                        className="flex items-center gap-4"
+                    >
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="weekly" id="weekly" />
+                            <Label htmlFor="weekly" className="font-normal">Weekly</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="bi-weekly" id="bi-weekly" />
+                            <Label htmlFor="bi-weekly" className="font-normal">Bi-weekly</Label>
+                        </div>
+                    </RadioGroup>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="rate" className="text-right">
-                    Rate ($/hr)
-                  </Label>
-                  <Input id="rate" type="number" value={newStubRate} onChange={(e) => setNewStubRate(parseFloat(e.target.value) || 0)} className="col-span-3" />
-                </div>
-                 <div className="col-span-4">
+                
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="location">State</Label>
+                        <Input id="location" value={newStubState} onChange={(e) => setNewStubState(e.target.value)} placeholder="e.g., CA" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="rate">Rate ($/hr)</Label>
+                        <Input id="rate" type="number" value={newStubRate} onChange={(e) => setNewStubRate(parseFloat(e.target.value) || 0)} />
+                    </div>
+                 </div>
+
+                 <div className="pt-2">
                     <Button onClick={handleAiCalculate} disabled={isCalculating} className="w-full bg-accent hover:bg-accent/90">
                         {isCalculating ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2" />}
                         Calculate with AI
                     </Button>
                  </div>
                  {aiResult && (
-                    <div className="col-span-4 space-y-4 rounded-lg border bg-muted/50 p-4 mt-4">
+                    <div className="space-y-4 rounded-lg border bg-muted/50 p-4 mt-4">
                         <h4 className="font-semibold">Calculation Result</h4>
                          <div className="grid grid-cols-2 gap-2 text-sm">
                             <span>Gross Pay:</span><span className="text-right font-medium">${aiResult.grossPay.toFixed(2)}</span>
@@ -345,3 +341,5 @@ export default function PayHistoryPage() {
     </>
   );
 }
+
+    
