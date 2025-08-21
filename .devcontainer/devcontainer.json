@@ -1,0 +1,45 @@
+{
+  "name": "ryne-codespace",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  "updateContentCommand": "corepack enable && npm ci",
+  "postCreateCommand": "npm run build --workspaces --if-present || true",
+  "postStartCommand": "echo 'Codespace ready: $(node -v)'",
+  "containerEnv": {
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "FORCE_COLOR": "1"
+  },
+  "forwardPorts": [3000, 8787],
+  "portsAttributes": {
+    "3000": { "label": "web (Next.js)", "onAutoForward": "openBrowser" },
+    "8787": { "label": "wrangler dev (Workers)", "onAutoForward": "notify" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "github.copilot",
+        "github.copilot-chat",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "redhat.vscode-yaml",
+        "streetsidesoftware.code-spell-checker"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "files.eol": "\n",
+        "typescript.tsserver.maxTsServerMemory": 4096,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "eslint.validate": ["typescript", "typescriptreact", "javascript", "javascriptreact"]
+      }
+    }
+  },
+  "remoteUser": "node"
+}
