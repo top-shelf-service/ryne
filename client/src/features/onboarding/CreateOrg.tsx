@@ -1,40 +1,31 @@
 // client/src/features/onboarding/CreateOrg.tsx
-import { useState } from 'react';
-import { useAuth } from '../../lib/useAuth';
-import { api } from '../../lib/api';
+import React, { useState } from 'react';
+import { apiPost } from '../../lib/api';
+import { useNavigate } from 'react-router-dom';
 
 export default function CreateOrg() {
-  const { idToken } = useAuth();
-  const [name, setName] = useState('');
-  const [error, setError] = useState<string|null>(null);
-  const [orgId, setOrgId] = useState<string| null>(null);
-  const [busy, setBusy] = useState(false);
+  const nav = useNavigate();
+  const [name, setName] = useState('My Company');
+  const [err, setErr] = useState<string | null>(null);
 
-  async function submit(e: React.FormEvent) {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true); setError(null);
     try {
-      const token = await idToken();
-      const resp = await api<{ orgId: string }>('/api/orgs', {
-        method: 'POST',
-        idToken: token || undefined,
-        body: JSON.stringify({ name })
-      });
-      setOrgId(resp.orgId);
+      const { orgId } = await apiPost<{ orgId: string }>('/orgs', { name });
+      nav('/dashboard');
     } catch (e: any) {
-      setError(e.message || String(e));
-    } finally {
-      setBusy(false);
+      setErr(e.message);
     }
-  }
+  };
 
   return (
-    <form onSubmit={submit} style={{ maxWidth: 420, margin: '40px auto', display: 'grid', gap: 12 }}>
-      <h2>Create your organization</h2>
-      <input placeholder="Organization name" value={name} onChange={e=>setName(e.target.value)} required />
-      {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
-      <button disabled={busy} type="submit">{busy ? 'Creating...' : 'Create org'}</button>
-      {orgId && <p>Created org <b>{orgId}</b>. You can now invite managers and staff.</p>}
-    </form>
+    <div className="container">
+      <h2>Create Organization</h2>
+      <form onSubmit={onSubmit}>
+        <input placeholder="Organization name" value={name} onChange={e=>setName(e.target.value)} />
+        <button type="submit">Create</button>
+        {err && <p style={{color:'red'}}>{err}</p>}
+      </form>
+    </div>
   );
 }

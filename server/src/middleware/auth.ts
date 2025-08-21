@@ -1,6 +1,6 @@
-// server/src/auth.ts
+// server/src/middleware/auth.ts
 import type { Request, Response, NextFunction } from 'express';
-import { auth as adminAuth } from './firebase.js';
+import { auth } from '../firebase.js'; // ✅ now matches firebase.ts export
 
 export interface AuthedRequest extends Request {
   uid?: string;
@@ -13,7 +13,7 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
     const token = hdr.startsWith('Bearer ') ? hdr.slice(7) : null;
     if (!token) return res.status(401).json({ error: 'Missing Bearer token' });
 
-    const decoded = await adminAuth.verifyIdToken(token);
+    const decoded = await auth.verifyIdToken(token);
     req.uid = decoded.uid;
     req.email = decoded.email ?? null;
     next();

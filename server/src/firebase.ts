@@ -1,32 +1,20 @@
 // server/src/firebase.ts
-import 'dotenv/config';                 // <— ensure .env is loaded even if this runs first
-import admin from 'firebase-admin';
+import { initializeApp, applicationDefault, cert, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 
-type ServiceAccount = Record<string, any>;
-
-function loadServiceAccount(): ServiceAccount {
-  // Prefer base64 (safer for quoting); fall back to raw JSON string
-  const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-
-  if (b64) {
-    try {
-      const json = Buffer.from(b64, 'base64').toString('utf8');
-      return JSON.parse(json);
-    } catch {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT_B64 is set but invalid (base64 or JSON parse failed).');
-    }
+let app = getApps()[0];
+if (!app) {
+  const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (json && json.trim().length > 0) {
+    app = initializeApp({ credential: cert(JSON.parse(json)) });
+  } else {
+    app = initializeApp({ credential: applicationDefault() });
   }
-  if (raw) {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is set but not valid JSON.');
-    }
-  }
-  throw new Error('Missing service account: set FIREBASE_SERVICE_ACCOUNT_B64 (preferred) or FIREBASE_SERVICE_ACCOUNT_JSON.');
 }
 
+<<<<<<< Updated upstream
 let app: admin.app.App;
 let auth: admin.auth.Auth;
 let db: admin.firestore.Firestore;
@@ -55,3 +43,9 @@ if (process.env.NODE_ENV === 'ci') {
 }
 
 export { auth, db, storage };
+=======
+// Export names your other files were importing:
+export const auth = getAuth(app);        // <-- Admin Auth (was missing)
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+>>>>>>> Stashed changes

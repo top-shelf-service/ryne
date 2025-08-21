@@ -1,0 +1,8 @@
+{
+  "name": "ryne-api",
+  "compatibility_date": "2025-08-21",
+  "main": "src/index.ts",
+  "vars": {
+    "ENV": "production"
+  }
+}

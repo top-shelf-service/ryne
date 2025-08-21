@@ -1,34 +1,33 @@
 // client/src/features/auth/SignIn.tsx
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
+import { Link, useNavigate } from 'react-router-dom';
 
-export default function SignIn({ onSignedIn }: { onSignedIn?: () => void }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit(e: React.FormEvent) {
+export default function SignIn() {
+  const nav = useNavigate();
+  const [email, setEmail] = useState('demo@example.com');
+  const [password, setPassword] = useState('password');
+  const [err, setErr] = useState<string | null>(null);
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true); setError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      onSignedIn?.();
-    } catch (err: any) {
-      setError(err.message || String(err));
-    } finally {
-      setBusy(false);
+      nav('/onboarding');
+    } catch (e: any) {
+      setErr(e.message);
     }
-  }
-
+  };
   return (
-    <form onSubmit={submit} style={{ maxWidth: 360, margin: '40px auto', display: 'grid', gap: 12 }}>
-      <h2>Sign in</h2>
-      <input placeholder="email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required />
-      <input placeholder="password" type="password" value={password} onChange={e=>setPassword(e.target.value)} required />
-      {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
-      <button disabled={busy} type="submit">{busy ? 'Signing in...' : 'Sign in'}</button>
-    </form>
+    <div className="container">
+      <h1>Sign In</h1>
+      <form onSubmit={onSubmit}>
+        <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
+        <input placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+        <button type="submit">Sign In</button>
+        {err && <p style={{color:'red'}}>{err}</p>}
+      </form>
+      <p>No account? <Link to="/signup">Sign up</Link></p>
+    </div>
   );
 }

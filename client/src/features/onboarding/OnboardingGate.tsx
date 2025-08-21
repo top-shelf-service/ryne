@@ -1,33 +1,40 @@
 // client/src/features/onboarding/OnboardingGate.tsx
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/useAuth';
-import { api } from '../../lib/api';
+import { apiGet } from '../../lib/api';
+import { Link, useNavigate } from 'react-router-dom';
 
-type Me = { uid: string; orgId?: string; role?: 'admin'|'manager'|'staff'; status?: 'pending'|'active'|'inactive' };
+type Me = { uid: string; email: string | null; orgs: Array<{ orgId: string; role: string }>; };
 
-export default function OnboardingGate({ onReady }: { onReady?: (me: Me) => void }) {
-  const { user, loading, idToken } = useAuth();
+export default function OnboardingGate() {
+  const { user, loading } = useAuth();
+  const nav = useNavigate();
   const [me, setMe] = useState<Me | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
-      if (loading) return;
-      if (!user) { setMe(null); return; }
-      try {
-        const token = await idToken();
-        const resp = await api<Me>('/api/me', { idToken: token || undefined });
-        setMe(resp);
-        onReady?.(resp);
-      } catch (e: any) {
-        setError(e.message || String(e));
-      }
-    })();
-  }, [user, loading]);
+    if (loading) return;
+    if (!user) {
+      nav('/signin');
+      return;
+    }
+    apiGet<Me>('/me').then(setMe).catch(() => setMe({ uid: user.uid, email: user.email, orgs: [] }));
+  }, [user, loading, nav]);
 
-  if (loading) return <p>Loading...</p>;
-  if (!user) return <p>Please sign in.</p>;
-  if (error) return <p style={{ color: 'crimson' }}>{error}</p>;
+  if (loading || !user || !me) return <p>Loading…</p>;
 
-  return <div><pre>{JSON.stringify(me, null, 2)}</pre></div>;
+  if (me.orgs.length > 0) {
+    // already onboarded – go to dashboard
+    nav('/dashboard');
+    return null;
+  }
+
+  return (
+    <div className="container">
+      <h1>Welcome, let’s set up your workspace</h1>
+      <div style={{ display:'flex', gap: 16 }}>
+        <Link to="/onboarding/create">Create Organization</Link>
+        <Link to="/onboarding/join">Join with Invite</Link>
+      </div>
+    </div>
+  );
 }

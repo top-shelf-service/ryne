@@ -1,12 +1,27 @@
-import axios, { AxiosInstance } from 'axios';
+// client/src/lib/api.ts
+import { auth } from './firebase';
 
-const baseURL =
-  (import.meta.env.VITE_API_URL && import.meta.env.DEV === false)
-    ? import.meta.env.VITE_API_URL
-    : '/api';
+const BASE = '/api';
 
-export const api: AxiosInstance = axios.create({
-  baseURL,
-  withCredentials: true,
-  headers: { 'Content-Type': 'application/json' },
-});
+async function withAuthHeaders() {
+  const u = auth.currentUser;
+  const token = u ? await u.getIdToken() : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function apiGet<T>(path: string): Promise<T> {
+  const headers = await withAuthHeaders();
+  const res = await fetch(`${BASE}${path}`, { headers });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json() as Promise<T>;
+}
+
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  const headers = {
+    ...(await withAuthHeaders()),
+    'Content-Type': 'application/json'
+  };
+  const res = await fetch(`${BASE}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json() as Promise<T>;
+}
