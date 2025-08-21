@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { allPayStubsData, allShifts, employees } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { format, subDays } from 'date-fns';
+import { format, subDays, addDays, startOfMonth, lastDayOfMonth } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { calculatePayStubAction, type CalculatePayStubOutput } from './actions';
 import { useToast } from '@/hooks/use-toast';
@@ -54,12 +54,81 @@ export default function PayHistoryPage() {
   const [newStubEmployee, setNewStubEmployee] = React.useState('Alice');
   const [newStubRate, setNewStubRate] = React.useState(20);
   const [newStubState, setNewStubState] = React.useState('CA');
-  const [payFrequency, setPayFrequency] = React.useState<'weekly' | 'bi-weekly'>('bi-weekly');
+  const [payFrequency, setPayFrequency] = React.useState<'weekly' | 'bi-weekly' | 'semi-monthly' | 'monthly'>('bi-weekly');
+  const [payPeriodStartDate, setPayPeriodStartDate] = React.useState<Date | undefined>();
   const [payPeriodEndDate, setPayPeriodEndDate] = React.useState<Date | undefined>();
+  const [lastEdited, setLastEdited] = React.useState<'start' | 'end' | null>(null);
+
   
   // AI calculation state
   const [isCalculating, setIsCalculating] = React.useState(false);
   const [aiResult, setAiResult] = React.useState<CalculatePayStubOutput | null>(null);
+
+  React.useEffect(() => {
+    if (!lastEdited) return;
+
+    if (lastEdited === 'start' && payPeriodStartDate) {
+      let endDate;
+      switch (payFrequency) {
+        case 'weekly':
+          endDate = addDays(payPeriodStartDate, 6);
+          break;
+        case 'bi-weekly':
+          endDate = addDays(payPeriodStartDate, 13);
+          break;
+        case 'semi-monthly':
+          if (payPeriodStartDate.getDate() === 1) {
+            endDate = new Date(payPeriodStartDate.getFullYear(), payPeriodStartDate.getMonth(), 15);
+          } else if (payPeriodStartDate.getDate() === 16) {
+            endDate = lastDayOfMonth(payPeriodStartDate);
+          }
+          break;
+        case 'monthly':
+          endDate = lastDayOfMonth(payPeriodStartDate);
+          break;
+      }
+      setPayPeriodEndDate(endDate);
+    } else if (lastEdited === 'end' && payPeriodEndDate) {
+      let startDate;
+      switch (payFrequency) {
+        case 'weekly':
+          startDate = subDays(payPeriodEndDate, 6);
+          break;
+        case 'bi-weekly':
+          startDate = subDays(payPeriodEndDate, 13);
+          break;
+        case 'semi-monthly':
+           if (payPeriodEndDate.getDate() <= 15) {
+                startDate = startOfMonth(payPeriodEndDate);
+            } else {
+                startDate = new Date(payPeriodEndDate.getFullYear(), payPeriodEndDate.getMonth(), 16);
+            }
+          break;
+        case 'monthly':
+          startDate = startOfMonth(payPeriodEndDate);
+          break;
+      }
+      setPayPeriodStartDate(startDate);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payPeriodStartDate, payPeriodEndDate, payFrequency, lastEdited]);
+
+  const handleStartDateSelect = (date: Date | undefined) => {
+    setPayPeriodStartDate(date);
+    setLastEdited('start');
+  };
+
+  const handleEndDateSelect = (date: Date | undefined) => {
+    setPayPeriodEndDate(date);
+    setLastEdited('end');
+  };
+
+  const handleFrequencyChange = (value: 'weekly' | 'bi-weekly' | 'semi-monthly' | 'monthly') => {
+    setPayFrequency(value);
+    setPayPeriodStartDate(undefined);
+    setPayPeriodEndDate(undefined);
+    setLastEdited(null);
+  };
 
   const staffPayStubs = allPayStubs.filter(stub => stub.employee === 'Alice');
 
@@ -69,16 +138,13 @@ export default function PayHistoryPage() {
     : staffPayStubs;
     
   const getGrossPay = () => {
-    if (!payPeriodEndDate || !newStubEmployee || !newStubRate) {
+    if (!payPeriodStartDate || !payPeriodEndDate || !newStubEmployee || !newStubRate) {
         return 0;
     }
 
-    const daysToSubtract = payFrequency === 'weekly' ? 6 : 13;
-    const startDate = subDays(payPeriodEndDate, daysToSubtract);
-
     const relevantShifts = allShifts.filter(shift =>
         shift.employee === newStubEmployee &&
-        shift.date >= startDate &&
+        shift.date >= payPeriodStartDate &&
         shift.date <= payPeriodEndDate
     );
     const totalHours = relevantShifts.reduce((acc, shift) => acc + calculateHours(shift.time), 0);
@@ -91,7 +157,7 @@ export default function PayHistoryPage() {
         toast({
             variant: 'destructive',
             title: "Calculation Error",
-            description: "Please select an employee, pay period end date, and rate. Ensure shifts exist in that period.",
+            description: "Please select an employee, a valid pay period, and rate. Ensure shifts exist in that period.",
         });
         return;
     }
@@ -115,7 +181,7 @@ export default function PayHistoryPage() {
   }
 
   const handleAddPayStub = () => {
-     if (!aiResult || !payPeriodEndDate) {
+     if (!aiResult || !payPeriodStartDate || !payPeriodEndDate) {
         toast({
             variant: 'destructive',
             title: "Cannot Save Stub",
@@ -123,14 +189,11 @@ export default function PayHistoryPage() {
         });
         return;
     }
-    
-    const daysToSubtract = payFrequency === 'weekly' ? 6 : 13;
-    const startDate = subDays(payPeriodEndDate, daysToSubtract);
 
     const newStub = {
         id: allPayStubs.length + 1,
         employee: newStubEmployee,
-        payPeriod: `${format(startDate, "LLL d, y")} - ${format(payPeriodEndDate, "LLL d, y")}`,
+        payPeriod: `${format(payPeriodStartDate, "LLL d, y")} - ${format(payPeriodEndDate, "LLL d, y")}`,
         payDate: format(new Date(), 'yyyy-MM-dd'),
         hours: aiResult.grossPay / newStubRate, // Recalculate hours
         rate: newStubRate,
@@ -142,9 +205,11 @@ export default function PayHistoryPage() {
     // Reset form
     setNewStubEmployee('Alice');
     setNewStubRate(20);
+    setPayPeriodStartDate(undefined);
     setPayPeriodEndDate(undefined);
     setPayFrequency('bi-weekly');
     setAiResult(null);
+    setLastEdited(null);
   };
   
   const isAdminOrManager = role === 'Admin' || role === 'Manager';
@@ -172,65 +237,63 @@ export default function PayHistoryPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="employee-name">Employee</Label>
-                        <select
-                            id="employee-name"
-                            value={newStubEmployee}
-                            onChange={(e) => setNewStubEmployee(e.target.value)}
-                            className="w-full p-2 border rounded-md bg-background text-sm"
-                        >
-                            {Object.keys(employees).map((name) => (
-                                <option key={name} value={name}>{name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="pay-period-end">Period End Date</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button
-                                id="date"
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !payPeriodEndDate && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {payPeriodEndDate ? format(payPeriodEndDate, "LLL dd, y") : <span>Pick a date</span>}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="single"
-                                selected={payPeriodEndDate}
-                                onSelect={setPayPeriodEndDate}
-                                initialFocus
-                            />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="employee-name">Employee</Label>
+                    <select
+                        id="employee-name"
+                        value={newStubEmployee}
+                        onChange={(e) => setNewStubEmployee(e.target.value)}
+                        className="w-full p-2 border rounded-md bg-background text-sm"
+                    >
+                        {Object.keys(employees).map((name) => (
+                            <option key={name} value={name}>{name}</option>
+                        ))}
+                    </select>
                 </div>
 
                 <div className="space-y-2">
                     <Label htmlFor="pay-frequency">Pay Frequency</Label>
                     <RadioGroup
-                        defaultValue="bi-weekly"
                         value={payFrequency}
-                        onValueChange={(value: 'weekly' | 'bi-weekly') => setPayFrequency(value)}
-                        className="flex items-center gap-4"
+                        onValueChange={handleFrequencyChange}
+                        className="flex items-center gap-4 flex-wrap"
                     >
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="weekly" id="weekly" />
-                            <Label htmlFor="weekly" className="font-normal">Weekly</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="bi-weekly" id="bi-weekly" />
-                            <Label htmlFor="bi-weekly" className="font-normal">Bi-weekly</Label>
-                        </div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="weekly" id="weekly" /><Label htmlFor="weekly" className="font-normal">Weekly</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="bi-weekly" id="bi-weekly" /><Label htmlFor="bi-weekly" className="font-normal">Bi-weekly</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="semi-monthly" id="semi-monthly" /><Label htmlFor="semi-monthly" className="font-normal">Semi-monthly</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="monthly" id="monthly" /><Label htmlFor="monthly" className="font-normal">Monthly</Label></div>
                     </RadioGroup>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="pay-period-start">Period Start Date</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button id="start-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !payPeriodStartDate && "text-muted-foreground")}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {payPeriodStartDate ? format(payPeriodStartDate, "LLL dd, y") : <span>Pick a date</span>}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={payPeriodStartDate} onSelect={handleStartDateSelect} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="pay-period-end">Period End Date</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button id="end-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !payPeriodEndDate && "text-muted-foreground")}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {payPeriodEndDate ? format(payPeriodEndDate, "LLL dd, y") : <span>Pick a date</span>}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={payPeriodEndDate} onSelect={handleEndDateSelect} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </div>
                 
                  <div className="grid grid-cols-2 gap-4">
@@ -341,5 +404,3 @@ export default function PayHistoryPage() {
     </>
   );
 }
-
-    
