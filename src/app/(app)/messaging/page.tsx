@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -12,7 +13,7 @@ import { useSearchParams } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-const conversations = [
+const initialConversations = [
   {
     id: 1,
     name: 'Alice',
@@ -47,7 +48,7 @@ const conversations = [
   },
 ];
 
-const messages = {
+const initialMessages = {
     1: [
         { id: 1, sender: 'Alice', text: 'Hey, I saw the new schedule.', timestamp: '10:00 AM' },
         { id: 2, sender: 'Me', text: 'Great! Any questions?', timestamp: '10:01 AM' },
@@ -69,7 +70,9 @@ const messages = {
 
 
 export default function MessagingPage() {
-  const [selectedConversation, setSelectedConversation] = React.useState(conversations[0]);
+  const [conversations, setConversations] = React.useState(initialConversations);
+  const [messages, setMessages] = React.useState(initialMessages);
+  const [selectedConversation, setSelectedConversation] = React.useState(initialConversations[0]);
   const [newMessage, setNewMessage] = React.useState('');
   const searchParams = useSearchParams();
   const role = searchParams.get('role') || 'Staff';
@@ -77,9 +80,28 @@ export default function MessagingPage() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (newMessage.trim() === '') return;
-    // This is a mock, so we're just logging it.
-    console.log(`Sending to ${selectedConversation.name}: ${newMessage}`);
-    // In a real app, you'd add the message to the state
+
+    const newMsg = {
+        id: Date.now(),
+        sender: 'Me',
+        text: newMessage,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages(prevMessages => {
+        const currentConvoMessages = prevMessages[selectedConversation.id as keyof typeof prevMessages] || [];
+        return {
+            ...prevMessages,
+            [selectedConversation.id]: [...currentConvoMessages, newMsg]
+        };
+    });
+
+    setConversations(prevConvos => prevConvos.map(convo => 
+        convo.id === selectedConversation.id 
+        ? { ...convo, lastMessage: newMessage, lastMessageTime: 'Just now' }
+        : convo
+    ));
+
     setNewMessage('');
   };
   
