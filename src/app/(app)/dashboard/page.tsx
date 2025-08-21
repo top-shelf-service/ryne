@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
-import { Megaphone, PlusCircle, Bell, UserPlus } from "lucide-react";
+import { Megaphone, PlusCircle, Bell, UserPlus, Send } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Calendar } from '@/components/ui/calendar';
-import { allShifts, type Shift } from '@/lib/data';
+import { allShifts, type Shift, employees } from '@/lib/data';
+import { DateRange } from 'react-day-picker';
+import { addDays, format } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -22,11 +23,14 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label";
+import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 
 export const dynamic = 'force-dynamic';
 
 export default function DashboardPage() {
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const role = searchParams.get('role') || 'Staff';
   const name = role === 'Admin' ? 'Admin' : 'Staff Member';
 
@@ -34,6 +38,18 @@ export default function DashboardPage() {
   const [isAddShiftOpen, setIsAddShiftOpen] = React.useState(false);
   const [isEditShiftOpen, setIsEditShiftOpen] = React.useState(false);
   const [selectedShift, setSelectedShift] = React.useState<Shift | null>(null);
+
+  // State for Time Off Request Dialog
+  const [isTimeOffOpen, setIsTimeOffOpen] = React.useState(false);
+  const [timeOffDateRange, setTimeOffDateRange] = React.useState<DateRange | undefined>({
+    from: new Date(),
+    to: addDays(new Date(), 4),
+  });
+  const [timeOffReason, setTimeOffReason] = React.useState('');
+  
+  // Mock current user data
+  const currentUser = employees.find(e => e.name === 'Alice');
+
 
   const announcements = [
     { title: "Summer Staff Party", date: "June 20, 2024", content: "Don't forget our annual summer party this Friday at 7 PM! RSVP by Wednesday." },
@@ -47,6 +63,26 @@ export default function DashboardPage() {
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
+  }
+
+  const handleTimeOffSubmit = () => {
+    if (!timeOffDateRange?.from || !timeOffDateRange?.to) {
+       toast({
+        variant: "destructive",
+        title: "Invalid Date Range",
+        description: "Please select a start and end date for your time off request.",
+      })
+      return;
+    }
+    console.log({
+      range: timeOffDateRange,
+      reason: timeOffReason,
+    });
+    toast({
+      title: "Request Submitted",
+      description: "Your time off request has been sent to your manager for approval.",
+    })
+    setIsTimeOffOpen(false);
   }
 
   const selectedDayShifts = allShifts.filter(shift =>
@@ -113,9 +149,57 @@ export default function DashboardPage() {
           </div>
         )}
          {(role === 'Staff' || role === 'Manager') && (
-           <Button asChild>
-             <Link href="#">Request Time Off</Link>
-           </Button>
+            <Dialog open={isTimeOffOpen} onOpenChange={setIsTimeOffOpen}>
+                <DialogTrigger asChild>
+                    <Button>Request Time Off</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Request Time Off</DialogTitle>
+                        <DialogDescription>
+                            Select the date range you would like to request off. Your current available balance is shown below.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+                        <div className="flex justify-center">
+                            <Calendar
+                                mode="range"
+                                numberOfMonths={1}
+                                selected={timeOffDateRange}
+                                onSelect={setTimeOffDateRange}
+                                
+                            />
+                        </div>
+                        <div className="space-y-4">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Available PTO</CardTitle>
+                                    <CardDescription>Your remaining paid time off balance.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-4xl font-bold">{currentUser?.ptoBalanceHours} <span className="text-lg font-normal text-muted-foreground">hours</span></p>
+                                </CardContent>
+                            </Card>
+                            <div className="space-y-2">
+                                <Label htmlFor="reason">Reason (Optional)</Label>
+                                <Textarea
+                                    id="reason"
+                                    placeholder="e.g., Family vacation"
+                                    value={timeOffReason}
+                                    onChange={(e) => setTimeOffReason(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsTimeOffOpen(false)}>Cancel</Button>
+                        <Button type="submit" onClick={handleTimeOffSubmit}>
+                            <Send className="mr-2 h-4 w-4" />
+                            Submit Request
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         )}
       </PageHeader>
 
@@ -242,3 +326,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    

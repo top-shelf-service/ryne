@@ -1,3 +1,4 @@
+
 export type Shift = {
   id: number;
   employee: string;
@@ -32,10 +33,10 @@ export const allPayStubsData = [
   { id: 6, employee: 'Charlie', payPeriod: 'May 16-31, 2024', payDate: '2024-06-05', hours: 80, rate: 21, total: 1680 },
 ].sort((a,b) => new Date(b.payDate).getTime() - new Date(a.payDate).getTime());
 
-export const employees = {
-  'Alice': 'E1',
-  'Bob': 'E2',
-  'Charlie': 'E3'
-};
+export const employees = [
+  { id: 'E1', name: 'Alice', ptoBalanceHours: 40 },
+  { id: 'E2', name: 'Bob', ptoBalanceHours: 80 },
+  { id: 'E3', name: 'Charlie', ptoBalanceHours: 16 },
+];
 
     
