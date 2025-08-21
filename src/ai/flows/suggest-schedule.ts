@@ -41,7 +41,7 @@ export type SuggestScheduleInput = z.infer<typeof SuggestScheduleInputSchema>;
 
 const SuggestScheduleOutputSchema = z.object({
   suggestedSchedule: z
-    .string()
+    .any()
     .describe('The suggested schedule in JSON format.'),
   reasoning: z
     .string()

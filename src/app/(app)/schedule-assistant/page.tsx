@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -154,7 +155,7 @@ export default function ScheduleAssistantPage() {
         demandForecast: data.demandForecast,
         coverageNeeds: data.coverageNeeds,
         companyPolicies: data.companyPolicies,
-        scheduleRequirements: fullRequirements,
+        scheduleRequirements: fullRequirements
     });
 
     if (result.error) {
@@ -363,7 +364,7 @@ export default function ScheduleAssistantPage() {
                 </CardHeader>
                 <CardContent>
                   <pre className="p-4 bg-muted rounded-lg text-sm overflow-x-auto">
-                    <code>{JSON.stringify(JSON.parse(suggestion.suggestedSchedule), null, 2)}</code>
+                    <code>{JSON.stringify(suggestion.suggestedSchedule, null, 2)}</code>
                   </pre>
                 </CardContent>
               </Card>
@@ -371,7 +372,7 @@ export default function ScheduleAssistantPage() {
                 <CardHeader>
                   <CardTitle className='flex items-center gap-2'><FileText /> Reasoning</CardTitle>
                   <CardDescription>The AI's reasoning for this schedule suggestion.</CardDescription>
-                </Header>
+                </CardHeader>
                 <CardContent>
                   <p className="text-sm whitespace-pre-wrap">{suggestion.reasoning}</p>
                 </CardContent>
@@ -380,7 +381,7 @@ export default function ScheduleAssistantPage() {
                 <CardHeader>
                   <CardTitle className='flex items-center gap-2'><TrendingUp /> Analytics</CardTitle>
                   <CardDescription>Key performance metrics for the generated schedule.</CardDescription>
-                </Header>
+                </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                     <div className="p-4 bg-muted/50 rounded-lg">
                         <p className="text-sm text-muted-foreground">Total Labor Cost</p>
