@@ -58,17 +58,17 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!searchParams.has('role')) {
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('role', 'Staff');
-        router.replace(`${pathname}?${params.toString()}`);
+        const newParams = new URLSearchParams(Array.from(searchParams.entries()));
+        newParams.set('role', 'Staff');
+        router.replace(`${pathname}?${newParams.toString()}`);
     }
   }, [pathname, searchParams, router]);
 
   const setRole = (newRole: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('role', newRole);
+    const newParams = new URLSearchParams(Array.from(searchParams.entries()));
+    newParams.set('role', newRole);
     // When changing role, navigate to the dashboard for that role
-    router.push(`/dashboard?${params.toString()}`);
+    router.push(`/dashboard?${newParams.toString()}`);
   }
 
   const navItems = allNavItems.filter(item => item.roles.includes(role));
@@ -224,5 +224,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <Suspense fallback={<div>Loading...</div>}>
       <AppLayoutContent>{children}</AppLayoutContent>
     </Suspense>
-  )
+  );
 }
