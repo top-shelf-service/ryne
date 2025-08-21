@@ -78,8 +78,8 @@ export default function PayHistoryPage() {
 
     const relevantShifts = allShifts.filter(shift =>
         shift.employee === newStubEmployee &&
-        new Date(shift.date) >= startDate &&
-        new Date(shift.date) <= payPeriodEndDate
+        shift.date >= startDate &&
+        shift.date <= payPeriodEndDate
     );
     const totalHours = relevantShifts.reduce((acc, shift) => acc + calculateHours(shift.time), 0);
     return totalHours * newStubRate;
@@ -341,5 +341,3 @@ export default function PayHistoryPage() {
     </>
   );
 }
-
-    
