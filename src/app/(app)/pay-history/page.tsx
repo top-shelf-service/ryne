@@ -21,11 +21,11 @@ import { Label } from "@/components/ui/label";
 import { allPayStubsData, allShifts, employees } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
-import type { DateRange } from 'react-day-picker';
 import { calculatePayStubAction, type CalculatePayStubOutput } from './actions';
 import { useToast } from '@/hooks/use-toast';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +54,8 @@ export default function PayHistoryPage() {
   const [newStubEmployee, setNewStubEmployee] = React.useState('Alice');
   const [newStubRate, setNewStubRate] = React.useState(20);
   const [newStubState, setNewStubState] = React.useState('CA');
-  const [payPeriod, setPayPeriod] = React.useState<DateRange | undefined>();
+  const [payFrequency, setPayFrequency] = React.useState<'weekly' | 'bi-weekly'>('bi-weekly');
+  const [payPeriodEndDate, setPayPeriodEndDate] = React.useState<Date | undefined>();
   
   // AI calculation state
   const [isCalculating, setIsCalculating] = React.useState(false);
@@ -68,13 +69,17 @@ export default function PayHistoryPage() {
     : staffPayStubs;
     
   const getGrossPay = () => {
-    if (!payPeriod?.from || !payPeriod?.to || !newStubEmployee || !newStubRate) {
+    if (!payPeriodEndDate || !newStubEmployee || !newStubRate) {
         return 0;
     }
+
+    const daysToSubtract = payFrequency === 'weekly' ? 6 : 13;
+    const startDate = subDays(payPeriodEndDate, daysToSubtract);
+
     const relevantShifts = allShifts.filter(shift =>
         shift.employee === newStubEmployee &&
-        new Date(shift.date) >= payPeriod.from! &&
-        new Date(shift.date) <= payPeriod.to!
+        new Date(shift.date) >= startDate &&
+        new Date(shift.date) <= payPeriodEndDate
     );
     const totalHours = relevantShifts.reduce((acc, shift) => acc + calculateHours(shift.time), 0);
     return totalHours * newStubRate;
@@ -86,7 +91,7 @@ export default function PayHistoryPage() {
         toast({
             variant: 'destructive',
             title: "Calculation Error",
-            description: "Please ensure a valid employee, pay period, and rate are selected, and that shifts exist in that period.",
+            description: "Please select an employee, pay period end date, and rate. Ensure shifts exist in that period.",
         });
         return;
     }
@@ -110,7 +115,7 @@ export default function PayHistoryPage() {
   }
 
   const handleAddPayStub = () => {
-     if (!aiResult || !payPeriod?.from || !payPeriod?.to) {
+     if (!aiResult || !payPeriodEndDate) {
         toast({
             variant: 'destructive',
             title: "Cannot Save Stub",
@@ -118,11 +123,14 @@ export default function PayHistoryPage() {
         });
         return;
     }
+    
+    const daysToSubtract = payFrequency === 'weekly' ? 6 : 13;
+    const startDate = subDays(payPeriodEndDate, daysToSubtract);
 
     const newStub = {
         id: allPayStubs.length + 1,
         employee: newStubEmployee,
-        payPeriod: `${format(payPeriod.from, "LLL d, y")} - ${format(payPeriod.to, "LLL d, y")}`,
+        payPeriod: `${format(startDate, "LLL d, y")} - ${format(payPeriodEndDate, "LLL d, y")}`,
         payDate: format(new Date(), 'yyyy-MM-dd'),
         hours: aiResult.grossPay / newStubRate, // Recalculate hours
         rate: newStubRate,
@@ -134,7 +142,8 @@ export default function PayHistoryPage() {
     // Reset form
     setNewStubEmployee('Alice');
     setNewStubRate(20);
-    setPayPeriod(undefined);
+    setPayPeriodEndDate(undefined);
+    setPayFrequency('bi-weekly');
     setAiResult(null);
   };
   
@@ -179,8 +188,27 @@ export default function PayHistoryPage() {
                     </select>
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="pay-period" className="text-right">
-                        Pay Period
+                    <Label htmlFor="pay-frequency" className="text-right">
+                        Pay Frequency
+                    </Label>
+                    <RadioGroup
+                        defaultValue="bi-weekly"
+                        onValueChange={(value: 'weekly' | 'bi-weekly') => setPayFrequency(value)}
+                        className="col-span-3 flex items-center gap-4"
+                    >
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="weekly" id="weekly" />
+                            <Label htmlFor="weekly">Weekly</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="bi-weekly" id="bi-weekly" />
+                            <Label htmlFor="bi-weekly">Bi-weekly</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="pay-period-end" className="text-right">
+                       Period End
                     </Label>
                     <div className="col-span-3">
                         <Popover>
@@ -190,32 +218,19 @@ export default function PayHistoryPage() {
                                 variant={"outline"}
                                 className={cn(
                                 "w-full justify-start text-left font-normal",
-                                !payPeriod && "text-muted-foreground"
+                                !payPeriodEndDate && "text-muted-foreground"
                                 )}
                             >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {payPeriod?.from ? (
-                                payPeriod.to ? (
-                                    <>
-                                    {format(payPeriod.from, "LLL dd, y")} -{" "}
-                                    {format(payPeriod.to, "LLL dd, y")}
-                                    </>
-                                ) : (
-                                    format(payPeriod.from, "LLL dd, y")
-                                )
-                                ) : (
-                                <span>Pick a date range</span>
-                                )}
+                                {payPeriodEndDate ? format(payPeriodEndDate, "LLL dd, y") : <span>Pick a date</span>}
                             </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
+                                mode="single"
+                                selected={payPeriodEndDate}
+                                onSelect={setPayPeriodEndDate}
                                 initialFocus
-                                mode="range"
-                                defaultMonth={payPeriod?.from}
-                                selected={payPeriod}
-                                onSelect={setPayPeriod}
-                                numberOfMonths={2}
                             />
                             </PopoverContent>
                         </Popover>
