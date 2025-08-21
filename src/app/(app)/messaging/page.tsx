@@ -178,7 +178,7 @@ export default function MessagingPage() {
                         </div>
                     ))}
                 </div>
-                <div className="p-4 border-t">
+                <div className="p-4 border-t mt-auto">
                   <form onSubmit={handleSendMessage} className="flex gap-2">
                     <Input
                       value={newMessage}
