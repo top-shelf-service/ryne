@@ -108,13 +108,13 @@ export default function MessagingPage() {
   const myName = role === 'Admin' ? 'Admin' : 'Staff Member';
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)]">
+    <div className="flex flex-col h-full">
       <PageHeader
         title="In-App Messaging"
         description="Communicate with your team members directly."
       />
-      <Card className="flex-grow flex flex-col">
-        <div className="grid grid-cols-1 md:grid-cols-3 w-full flex-grow">
+      <Card className="flex-grow flex flex-col h-[calc(100vh-200px)]">
+        <div className="grid grid-cols-1 md:grid-cols-3 w-full flex-grow overflow-hidden">
           <div className="col-span-1 border-r border-border flex flex-col">
             <CardHeader className="flex-shrink-0">
               <CardTitle>Conversations</CardTitle>
