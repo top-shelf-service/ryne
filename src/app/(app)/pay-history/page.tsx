@@ -26,6 +26,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { calculatePayStubAction, type CalculatePayStubOutput } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,11 +52,23 @@ export default function PayHistoryPage() {
   const [selectedEmployee, setSelectedEmployee] = React.useState<string>('all');
   const [allPayStubs, setAllPayStubs] = React.useState(allPayStubsData);
   
-  // Form state
-  const [newStubEmployee, setNewStubEmployee] = React.useState('Alice');
-  const [newStubRate, setNewStubRate] = React.useState(20);
-  const [newStubState, setNewStubState] = React.useState('CA');
-  const [payFrequency, setPayFrequency] = React.useState<'weekly' | 'bi-weekly' | 'semi-monthly' | 'monthly'>('bi-weekly');
+  // Form state for the dialog
+  const [formState, setFormState] = React.useState({
+    employee: 'Alice',
+    rate: 20,
+    state: 'CA',
+    payFrequency: 'Bi-Weekly' as 'Weekly' | 'Bi-Weekly',
+    ytdGross: 3200, // Mock YTD
+    filingStatus: 'Single or Married filing separately' as 'Single or Married filing separately' | 'Married filing jointly' | 'Head of Household',
+    isMultipleJobsChecked: false,
+    dependentsAmount: 0,
+    otherIncome: 0,
+    otherDeductions: 0,
+    extraWithholding: 0,
+    preTaxDeductions: 100, // Mock for health insurance etc.
+    ptoHours: 8,
+  });
+
   const [payPeriodStartDate, setPayPeriodStartDate] = React.useState<Date | undefined>();
   const [payPeriodEndDate, setPayPeriodEndDate] = React.useState<Date | undefined>();
   const [lastEdited, setLastEdited] = React.useState<'start' | 'end' | null>(null);
@@ -68,76 +81,38 @@ export default function PayHistoryPage() {
   React.useEffect(() => {
     if (!lastEdited) return;
 
+    let newDate;
     if (lastEdited === 'start' && payPeriodStartDate) {
-      let endDate;
-      switch (payFrequency) {
-        case 'weekly':
-          endDate = addDays(payPeriodStartDate, 6);
-          break;
-        case 'bi-weekly':
-          endDate = addDays(payPeriodStartDate, 13);
-          break;
-        case 'semi-monthly':
-          if (payPeriodStartDate.getDate() === 1) {
-            endDate = new Date(payPeriodStartDate.getFullYear(), payPeriodStartDate.getMonth(), 15);
-          } else if (payPeriodStartDate.getDate() === 16) {
-            endDate = lastDayOfMonth(payPeriodStartDate);
-          }
-          break;
-        case 'monthly':
-          endDate = lastDayOfMonth(payPeriodStartDate);
-          break;
+      switch (formState.payFrequency) {
+        case 'Weekly': newDate = addDays(payPeriodStartDate, 6); break;
+        case 'Bi-Weekly': newDate = addDays(payPeriodStartDate, 13); break;
       }
-      if (endDate && (!payPeriodEndDate || !isSameDay(endDate, payPeriodEndDate))) {
-          setPayPeriodEndDate(endDate);
+      if (newDate && (!payPeriodEndDate || !isSameDay(newDate, payPeriodEndDate))) {
+          setPayPeriodEndDate(newDate);
       }
     } else if (lastEdited === 'end' && payPeriodEndDate) {
       let startDate;
-      switch (payFrequency) {
-        case 'weekly':
-          startDate = subDays(payPeriodEndDate, 6);
-          break;
-        case 'bi-weekly':
-          startDate = subDays(payPeriodEndDate, 13);
-          break;
-        case 'semi-monthly':
-           if (payPeriodEndDate.getDate() <= 15) {
-                startDate = startOfMonth(payPeriodEndDate);
-            } else {
-                startDate = new Date(payPeriodEndDate.getFullYear(), payPeriodEndDate.getMonth(), 16);
-            }
-          break;
-        case 'monthly':
-          startDate = startOfMonth(payPeriodEndDate);
-          break;
+      switch (formState.payFrequency) {
+        case 'Weekly': startDate = subDays(payPeriodEndDate, 6); break;
+        case 'Bi-Weekly': startDate = subDays(payPeriodEndDate, 13); break;
       }
-       if (startDate && (!payPeriodStartDate || !isSameDay(startDate, payPeriodStartDate))) {
+      if (startDate && (!payPeriodStartDate || !isSameDay(startDate, payPeriodStartDate))) {
           setPayPeriodStartDate(startDate);
-       }
+      }
     }
-  }, [payFrequency, lastEdited, payPeriodStartDate, payPeriodEndDate]);
-
-  const handleStartDateSelect = (date: Date | undefined) => {
-    if (date) {
-        setPayPeriodStartDate(date);
-        setLastEdited('start');
-    }
+  }, [formState.payFrequency, lastEdited, payPeriodStartDate, payPeriodEndDate]);
+  
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setFormState(prev => ({
+      ...prev,
+      [name]: type === 'number' ? parseFloat(value) || 0 : value,
+    }));
   };
+   const handleCheckboxChange = (checked: boolean | 'indeterminate') => {
+      setFormState(prev => ({ ...prev, isMultipleJobsChecked: !!checked }));
+  }
 
-  const handleEndDateSelect = (date: Date | undefined) => {
-    if (date) {
-        setPayPeriodEndDate(date);
-        setLastEdited('end');
-    }
-  };
-
-  const handleFrequencyChange = (value: 'weekly' | 'bi-weekly' | 'semi-monthly' | 'monthly') => {
-    setPayFrequency(value);
-    setPayPeriodStartDate(undefined);
-    setPayPeriodEndDate(undefined);
-    setLastEdited(null);
-    setAiResult(null);
-  };
 
   const staffPayStubs = allPayStubs.filter(stub => stub.employee === 'Alice');
 
@@ -146,56 +121,27 @@ export default function PayHistoryPage() {
         .filter(stub => selectedEmployee === 'all' || stub.employee === selectedEmployee)
     : staffPayStubs;
     
-  const getGrossPay = () => {
-    if (!payPeriodEndDate || !newStubEmployee || !newStubRate) {
-        return 0;
-    }
-    
-    let startDate;
-
-    switch (payFrequency) {
-        case 'weekly':
-            startDate = subDays(payPeriodEndDate, 6);
-            break;
-        case 'bi-weekly':
-            startDate = subDays(payPeriodEndDate, 13);
-            break;
-        case 'semi-monthly':
-           if (payPeriodEndDate.getDate() <= 15) {
-                startDate = startOfMonth(payPeriodEndDate);
-            } else {
-                startDate = new Date(payPeriodEndDate.getFullYear(), payPeriodEndDate.getMonth(), 16);
-            }
-          break;
-        case 'monthly':
-          startDate = startOfMonth(payPeriodEndDate);
-          break;
-        default:
-            startDate = payPeriodStartDate;
-            break;
-    }
-
-
-    if (!startDate) return 0;
+  const getGrossPayFromHours = () => {
+    if (!payPeriodStartDate || !payPeriodEndDate) return 0;
     
     const relevantShifts = allShifts.filter(shift => {
         const shiftDateOnly = new Date(shift.date.getFullYear(), shift.date.getMonth(), shift.date.getDate());
-        return shift.employee === newStubEmployee &&
-            shiftDateOnly >= startDate &&
+        return shift.employee === formState.employee &&
+            shiftDateOnly >= payPeriodStartDate &&
             shiftDateOnly <= payPeriodEndDate;
     });
 
     const totalHours = relevantShifts.reduce((acc, shift) => acc + calculateHours(shift.time), 0);
-    return totalHours * newStubRate;
+    return totalHours * formState.rate;
   }
   
   const handleAiCalculate = async () => {
-    const grossPay = getGrossPay();
-    if (grossPay <= 0) {
+    const grossPayFromHours = getGrossPayFromHours();
+    if (grossPayFromHours <= 0 && formState.ptoHours <= 0) {
         toast({
             variant: 'destructive',
             title: "Calculation Error",
-            description: "Please select an employee, a valid pay period, and rate. Ensure shifts exist in that period.",
+            description: "No hours worked or PTO specified for the selected period.",
         });
         return;
     }
@@ -203,7 +149,22 @@ export default function PayHistoryPage() {
     setIsCalculating(true);
     setAiResult(null);
 
-    const result = await calculatePayStubAction({ grossPay, location: newStubState });
+    const result = await calculatePayStubAction({ 
+        grossPayFromHours: grossPayFromHours,
+        hourlyRate: formState.rate,
+        location: formState.state,
+        ptoHours: formState.ptoHours,
+        // Pass all the other form fields
+        payFrequency: formState.payFrequency,
+        yearToDateGross: formState.ytdGross,
+        filingStatus: formState.filingStatus,
+        isMultipleJobsChecked: formState.isMultipleJobsChecked,
+        dependentsAmount: formState.dependentsAmount,
+        otherIncome: formState.otherIncome,
+        otherDeductions: formState.otherDeductions,
+        extraWithholding: formState.extraWithholding,
+        preTaxDeductions: formState.preTaxDeductions,
+    });
     
     if (result.error) {
         toast({
@@ -230,24 +191,16 @@ export default function PayHistoryPage() {
 
     const newStub = {
         id: allPayStubs.length + 1,
-        employee: newStubEmployee,
+        employee: formState.employee,
         payPeriod: `${format(payPeriodStartDate, "LLL d, y")} - ${format(payPeriodEndDate, "LLL d, y")}`,
         payDate: format(new Date(), 'yyyy-MM-dd'),
-        hours: aiResult.grossPay / newStubRate, // Recalculate hours
-        rate: newStubRate,
-        total: aiResult.netPay, // Use netPay from AI
+        hours: (aiResult.grossPay - (formState.ptoHours * formState.rate)) / formState.rate,
+        rate: formState.rate,
+        total: aiResult.netPay,
     };
 
     setAllPayStubs(prevStubs => [newStub, ...prevStubs].sort((a,b) => new Date(b.payDate).getTime() - new Date(a.payDate).getTime()));
     setIsAddStubOpen(false);
-    // Reset form
-    setNewStubEmployee('Alice');
-    setNewStubRate(20);
-    setPayPeriodStartDate(undefined);
-    setPayPeriodEndDate(undefined);
-    setPayFrequency('bi-weekly');
-    setAiResult(null);
-    setLastEdited(null);
   };
   
   const isAdminOrManager = role === 'Admin' || role === 'Manager';
@@ -267,104 +220,136 @@ export default function PayHistoryPage() {
                 Add Pay Stub
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-4xl">
               <DialogHeader>
                 <DialogTitle>Add New Pay Stub</DialogTitle>
                 <DialogDescription>
                   Calculate and generate a new pay stub using AI-powered deductions.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="employee-name">Employee</Label>
-                            <select
-                                id="employee-name"
-                                value={newStubEmployee}
-                                onChange={(e) => setNewStubEmployee(e.target.value)}
-                                className="w-full p-2 border rounded-md bg-background text-sm"
-                            >
-                                {Object.keys(employees).map((name) => (
-                                    <option key={name} value={name}>{name}</option>
-                                ))}
-                            </select>
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="pay-period-start">Period Start Date</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                <Button id="start-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !payPeriodStartDate && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {payPeriodStartDate ? format(payPeriodStartDate, "LLL dd, y") : <span>Pick a date</span>}
-                                </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={payPeriodStartDate} onSelect={handleStartDateSelect} initialFocus />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="location">State</Label>
-                            <Input id="location" value={newStubState} onChange={(e) => setNewStubState(e.target.value)} placeholder="e.g., CA" />
-                        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
+                {/* Column 1: Pay Info */}
+                <div className="space-y-4">
+                    <h4 className="font-semibold text-lg border-b pb-2">Pay Details</h4>
+                    <div className="space-y-2">
+                        <Label htmlFor="employee">Employee</Label>
+                        <select id="employee" name="employee" value={formState.employee} onChange={handleFormChange} className="w-full p-2 border rounded-md bg-background text-sm">
+                            {employees.map((emp) => (<option key={emp.id} value={emp.name}>{emp.name}</option>))}
+                        </select>
                     </div>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="pay-frequency">Pay Frequency</Label>
-                            <RadioGroup
-                                value={payFrequency}
-                                onValueChange={handleFrequencyChange}
-                                className="flex items-center gap-4 flex-wrap"
-                            >
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="weekly" id="weekly" /><Label htmlFor="weekly" className="font-normal">Weekly</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="bi-weekly" id="bi-weekly" /><Label htmlFor="bi-weekly" className="font-normal">Bi-Weekly</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="semi-monthly" id="semi-monthly" /><Label htmlFor="semi-monthly" className="font-normal">Semi-Monthly</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="monthly" id="monthly" /><Label htmlFor="monthly" className="font-normal">Monthly</Label></div>
-                            </RadioGroup>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="pay-period-end">Period End Date</Label>
+                     <div className="space-y-2">
+                        <Label htmlFor="rate">Rate ($/hr)</Label>
+                        <Input id="rate" name="rate" type="number" value={formState.rate} onChange={handleFormChange} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="ptoHours">PTO Hours</Label>
+                        <Input id="ptoHours" name="ptoHours" type="number" value={formState.ptoHours} onChange={handleFormChange} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="payFrequency">Pay Frequency</Label>
+                        <RadioGroup name="payFrequency" value={formState.payFrequency} onValueChange={(val: 'Weekly' | 'Bi-Weekly') => setFormState(p => ({...p, payFrequency: val}))} className="flex items-center gap-4">
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="Weekly" id="weekly" /><Label htmlFor="weekly" className="font-normal">Weekly</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="Bi-Weekly" id="bi-weekly" /><Label htmlFor="bi-weekly" className="font-normal">Bi-Weekly</Label></div>
+                        </RadioGroup>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Pay Period</Label>
+                        <div className="flex gap-2">
                             <Popover>
                                 <PopoverTrigger asChild>
-                                <Button id="end-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !payPeriodEndDate && "text-muted-foreground")}>
+                                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !payPeriodStartDate && "text-muted-foreground")}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {payPeriodEndDate ? format(payPeriodEndDate, "LLL dd, y") : <span>Pick a date</span>}
+                                    {payPeriodStartDate ? format(payPeriodStartDate, "MM/dd/y") : <span>Start</span>}
                                 </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={payPeriodEndDate} onSelect={handleEndDateSelect} initialFocus />
-                                </PopoverContent>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={payPeriodStartDate} onSelect={(d) => {setPayPeriodStartDate(d); setLastEdited('start');}} initialFocus /></PopoverContent>
                             </Popover>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="rate">Rate ($/hr)</Label>
-                            <Input id="rate" type="number" value={newStubRate} onChange={(e) => setNewStubRate(parseFloat(e.target.value) || 0)} />
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !payPeriodEndDate && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {payPeriodEndDate ? format(payPeriodEndDate, "MM/dd/y") : <span>End</span>}
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={payPeriodEndDate} onSelect={(d) => {setPayPeriodEndDate(d); setLastEdited('end');}} initialFocus /></PopoverContent>
+                            </Popover>
                         </div>
                     </div>
                 </div>
 
-                 <div className="pt-4">
-                    <Button onClick={handleAiCalculate} disabled={isCalculating} className="w-full bg-accent hover:bg-accent/90">
-                        {isCalculating ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2" />}
-                        Calculate with AI
-                    </Button>
-                 </div>
-                 {aiResult && (
-                    <div className="space-y-4 rounded-lg border bg-muted/50 p-4 mt-4">
-                        <h4 className="font-semibold">Calculation Result</h4>
-                         <div className="grid grid-cols-2 gap-2 text-sm">
-                            <span>Gross Pay:</span><span className="text-right font-medium">${aiResult.grossPay.toFixed(2)}</span>
-                            <span>Federal Tax:</span><span className="text-right font-medium">-${aiResult.deductions.federal.toFixed(2)}</span>
-                            <span>State Tax:</span><span className="text-right font-medium">-${aiResult.deductions.state.toFixed(2)}</span>
-                            <span>FICA:</span><span className="text-right font-medium">-${aiResult.deductions.fica.toFixed(2)}</span>
-                            <span className="font-bold border-t pt-2">Net Pay:</span><span className="font-bold border-t pt-2 text-right">${aiResult.netPay.toFixed(2)}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground italic mt-2">{aiResult.reasoning}</p>
+                {/* Column 2: W-4 Info */}
+                 <div className="space-y-4">
+                    <h4 className="font-semibold text-lg border-b pb-2">W-4 Information</h4>
+                    <div className="space-y-2">
+                        <Label htmlFor="filingStatus">Filing Status</Label>
+                        <select id="filingStatus" name="filingStatus" value={formState.filingStatus} onChange={handleFormChange} className="w-full p-2 border rounded-md bg-background text-sm">
+                            <option>Single or Married filing separately</option>
+                            <option>Married filing jointly</option>
+                            <option>Head of Household</option>
+                        </select>
                     </div>
-                 )}
+                     <div className="space-y-2">
+                        <Label htmlFor="dependentsAmount">Dependents (Step 3)</Label>
+                        <Input id="dependentsAmount" name="dependentsAmount" type="number" value={formState.dependentsAmount} onChange={handleFormChange}/>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="otherIncome">Other Income (Step 4a)</Label>
+                        <Input id="otherIncome" name="otherIncome" type="number" value={formState.otherIncome} onChange={handleFormChange}/>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="otherDeductions">Deductions (Step 4b)</Label>
+                        <Input id="otherDeductions" name="otherDeductions" type="number" value={formState.otherDeductions} onChange={handleFormChange}/>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="extraWithholding">Extra Withholding (Step 4c)</Label>
+                        <Input id="extraWithholding" name="extraWithholding" type="number" value={formState.extraWithholding} onChange={handleFormChange}/>
+                    </div>
+                     <div className="flex items-center space-x-2 pt-2">
+                        <Checkbox id="isMultipleJobsChecked" name="isMultipleJobsChecked" onCheckedChange={handleCheckboxChange} checked={formState.isMultipleJobsChecked} />
+                        <Label htmlFor="isMultipleJobsChecked" className="font-normal">Multiple jobs or spouse works?</Label>
+                    </div>
+                </div>
+
+                {/* Column 3: Other Deductions & Calculation */}
+                 <div className="space-y-4">
+                    <h4 className="font-semibold text-lg border-b pb-2">Other Details</h4>
+                    <div className="space-y-2">
+                        <Label htmlFor="state">State</Label>
+                        <Input id="state" name="state" value={formState.state} onChange={handleFormChange} placeholder="e.g., CA" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="ytdGross">Year-to-Date Gross</Label>
+                        <Input id="ytdGross" name="ytdGross" type="number" value={formState.ytdGross} onChange={handleFormChange} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="preTaxDeductions">Pre-Tax Deductions</Label>
+                        <Input id="preTaxDeductions" name="preTaxDeductions" type="number" value={formState.preTaxDeductions} onChange={handleFormChange} placeholder="e.g., Health Ins." />
+                    </div>
+                    <div className="pt-4">
+                        <Button onClick={handleAiCalculate} disabled={isCalculating} className="w-full bg-accent hover:bg-accent/90">
+                            {isCalculating ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2" />}
+                            Calculate with AI
+                        </Button>
+                    </div>
+                    {aiResult && (
+                        <div className="space-y-2 rounded-lg border bg-muted/50 p-4">
+                            <h4 className="font-semibold">Calculation Result</h4>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                <span>Gross Pay:</span><span className="text-right font-medium">${aiResult.grossPay.toFixed(2)}</span>
+                                <span className="pl-2 text-muted-foreground">Pre-Tax Deductions:</span><span className="text-right font-medium">-${aiResult.deductions.preTax.toFixed(2)}</span>
+                                <span className="pl-2 text-muted-foreground">Federal Tax:</span><span className="text-right font-medium">-${aiResult.deductions.federal.toFixed(2)}</span>
+                                <span className="pl-2 text-muted-foreground">State Tax:</span><span className="text-right font-medium">-${aiResult.deductions.state.toFixed(2)}</span>
+                                <span className="pl-2 text-muted-foreground">Social Security:</span><span className="text-right font-medium">-${aiResult.deductions.socialSecurity.toFixed(2)}</span>
+                                <span className="pl-2 text-muted-foreground">Medicare:</span><span className="text-right font-medium">-${aiResult.deductions.medicare.toFixed(2)}</span>
+                                <span className="font-bold border-t pt-2 mt-1">Net Pay:</span><span className="font-bold border-t pt-2 mt-1 text-right">${aiResult.netPay.toFixed(2)}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground italic pt-2">{aiResult.reasoning}</p>
+                        </div>
+                    )}
+                </div>
               </div>
               <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAddStubOpen(false)}>Cancel</Button>
                 <Button type="submit" onClick={handleAddPayStub} disabled={!aiResult || isCalculating}>Save Pay Stub</Button>
               </DialogFooter>
             </DialogContent>

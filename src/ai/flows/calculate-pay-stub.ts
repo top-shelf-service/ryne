@@ -10,41 +10,117 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { taxBrackets, additionalMedicareThresholds, socialSecurityRate, socialSecurityWageLimit, medicareRate, additionalMedicareRate } from '@/lib/tax-data';
 
-// Mock tax rate tool
-const getTaxRates = ai.defineTool(
+
+// Helper function for state tax, as it's a simple mock
+const calculateStateTax = (state: string, taxableIncome: number) => {
+  if (state.toUpperCase() === 'CA') return taxableIncome * 0.08;
+  if (state.toUpperCase() === 'NY') return taxableIncome * 0.065;
+  if (state.toUpperCase() === 'TX') return 0;
+  return taxableIncome * 0.05;
+};
+
+
+// The new, self-contained tool for all payroll calculations
+const calculatePayrollDetails = ai.defineTool(
     {
-      name: 'getTaxRates',
-      description: 'Get estimated tax rates for a given US state.',
+      name: 'calculatePayrollDetails',
+      description: 'Calculates detailed FICA, Federal, and State tax withholding for a given pay period.',
       inputSchema: z.object({
+        grossPay: z.number(),
+        payFrequency: z.enum(['Weekly', 'Bi-Weekly']),
+        yearToDateGross: z.number(),
+        filingStatus: z.enum(['Single or Married filing separately', 'Married filing jointly', 'Head of Household']),
+        isMultipleJobsChecked: z.boolean(),
+        dependentsAmount: z.number(),
+        otherIncome: z.number(),
+        otherDeductions: z.number(),
+        extraWithholding: z.number(),
+        preTaxDeductions: z.number().describe('Total pre-tax deductions like health insurance, 401k, etc.'),
         state: z.string().describe('The two-letter US state code (e.g., "CA", "NY").'),
       }),
       outputSchema: z.object({
-        federalRate: z.number().describe('Estimated federal income tax rate.'),
-        stateRate: z.number().describe('Estimated state income tax rate.'),
-        ficaRate: z.number().describe('FICA tax rate (Social Security and Medicare).'),
+        federal: z.number(),
+        state: z.number(),
+        socialSecurity: z.number(),
+        medicare: z.number(),
+        total: z.number(),
       }),
     },
-    async ({ state }) => {
-      console.log(`Fetching mock tax rates for: ${state}`);
-      // In a real application, this would call a tax API.
-      // For this example, we'll return mock data.
-      let stateRate = 0.05; // Default state tax
-      if (state.toUpperCase() === 'CA') stateRate = 0.08;
-      if (state.toUpperCase() === 'NY') stateRate = 0.065;
-      if (state.toUpperCase() === 'TX') stateRate = 0.0; // No state income tax
-      
-      return {
-        federalRate: 0.15, // Mock federal rate
-        stateRate: stateRate,
-        ficaRate: 0.0765, // Standard FICA rate
-      };
+    async (input) => {
+        // 1. Determine Taxable Income
+        const ficaTaxableIncome = Math.max(0, input.grossPay - input.preTaxDeductions);
+        const federalTaxableIncome = Math.max(0, input.grossPay - input.preTaxDeductions);
+
+        // 2. Calculate FICA Taxes
+        const remainingSSTaxable = socialSecurityWageLimit - input.yearToDateGross;
+        const currentSSTaxable = Math.max(0, Math.min(ficaTaxableIncome, remainingSSTaxable));
+        const socialSecurityWithholding = currentSSTaxable * socialSecurityRate;
+
+        let medicareWithholding = ficaTaxableIncome * medicareRate;
+
+        const ytdPlusCurrentGross = input.yearToDateGross + ficaTaxableIncome;
+        const medicareThreshold = additionalMedicareThresholds[input.filingStatus as keyof typeof additionalMedicareThresholds] || 200000;
+        let additionalMedicareWithholding = 0;
+        if (ytdPlusCurrentGross > medicareThreshold) {
+            const additionalTaxableBase = (ytdPlusCurrentGross - medicareThreshold) - Math.max(0, input.yearToDateGross - medicareThreshold);
+            additionalMedicareWithholding = additionalTaxableBase * additionalMedicareRate;
+        }
+        const totalMedicare = medicareWithholding + additionalMedicareWithholding;
+
+
+        // 3. Calculate Federal Income Tax (FIT)
+        const payPeriods = input.payFrequency === 'Weekly' ? 52 : 26;
+        const annualTaxableWages = (federalTaxableIncome * payPeriods) - input.otherDeductions;
+        const adjustedAnnualWage = Math.max(0, annualTaxableWages + input.otherIncome);
+
+        const bracketKey = input.isMultipleJobsChecked ? 'MultipleJobs' : input.filingStatus as keyof typeof taxBrackets;
+        const brackets = taxBrackets[bracketKey];
+        
+        let tentativeWithholding = 0;
+        for (const bracket of brackets) {
+            if (adjustedAnnualWage > bracket.over) {
+                const taxableInBracket = Math.min(adjustedAnnualWage - bracket.over, (bracket.upTo || Infinity) - bracket.over);
+                tentativeWithholding += taxableInBracket * bracket.rate;
+            }
+        }
+        
+        const taxCredits = input.dependentsAmount;
+        const annualWithholding = Math.max(0, tentativeWithholding - taxCredits);
+        let federalIncomeTaxWithholding = (annualWithholding / payPeriods) + input.extraWithholding;
+        
+
+        // 4. Calculate State Tax
+        const stateIncomeTaxWithholding = calculateStateTax(input.state, federalTaxableIncome);
+
+        // 5. Sum up
+        const totalTaxes = federalIncomeTaxWithholding + socialSecurityWithholding + totalMedicare + stateIncomeTaxWithholding;
+
+        return {
+            federal: federalIncomeTaxWithholding,
+            state: stateIncomeTaxWithholding,
+            socialSecurity: socialSecurityWithholding,
+            medicare: totalMedicare,
+            total: totalTaxes,
+        };
     }
-  );
+);
 
 
 const CalculatePayStubInputSchema = z.object({
-  grossPay: z.number().describe('The total gross pay before any deductions.'),
+  grossPayFromHours: z.number().describe('The gross pay calculated from hours worked.'),
+  ptoHours: z.number().describe('Number of Paid Time Off hours to include.'),
+  hourlyRate: z.number().describe('The employee\'s hourly wage.'),
+  payFrequency: z.enum(['Weekly', 'Bi-Weekly']),
+  yearToDateGross: z.number(),
+  filingStatus: z.enum(['Single or Married filing separately', 'Married filing jointly', 'Head of Household']),
+  isMultipleJobsChecked: z.boolean(),
+  dependentsAmount: z.number(),
+  otherIncome: z.number(),
+  otherDeductions: z.number(),
+  extraWithholding: z.number(),
+  preTaxDeductions: z.number(),
   location: z.string().describe('The US state for tax calculation (e.g., "CA").'),
 });
 export type CalculatePayStubInput = z.infer<typeof CalculatePayStubInputSchema>;
@@ -54,11 +130,13 @@ const CalculatePayStubOutputSchema = z.object({
   deductions: z.object({
     federal: z.number(),
     state: z.number(),
-    fica: z.number(),
+    socialSecurity: z.number(),
+    medicare: z.number(),
+    preTax: z.number(),
     total: z.number(),
   }),
   netPay: z.number(),
-  reasoning: z.string().describe('A brief explanation of how the deductions were calculated.'),
+  reasoning: z.string().describe('A brief explanation of how the pay was calculated, including PTO.'),
 });
 export type CalculatePayStubOutput = z.infer<typeof CalculatePayStubOutputSchema>;
 
@@ -71,17 +149,29 @@ const prompt = ai.definePrompt({
   name: 'calculatePayStubPrompt',
   input: { schema: CalculatePayStubInputSchema },
   output: { schema: CalculatePayStubOutputSchema },
-  tools: [getTaxRates],
-  prompt: `You are a payroll calculation expert. Your task is to calculate the net pay for an employee based on their gross pay and location.
+  tools: [calculatePayrollDetails],
+  prompt: `You are a payroll calculation expert. Your task is to calculate the net pay for an employee.
 
-  1.  Use the 'getTaxRates' tool to fetch the estimated tax rates for the employee's state.
-  2.  Calculate the deductions for Federal, State, and FICA taxes based on the rates from the tool.
-  3.  Sum the deductions to get the total deductions.
-  4.  Subtract the total deductions from the gross pay to get the net pay.
-  5.  Provide a brief reasoning for your calculation.
+  1.  Calculate the total gross pay by adding the pay from worked hours to the pay from any PTO hours.
+  2.  Use the 'calculatePayrollDetails' tool to get the detailed tax breakdown based on the total gross pay and employee's W-4 information.
+  3.  Sum all deductions (pre-tax and all calculated taxes).
+  4.  Subtract total deductions from the total gross pay to calculate the final net pay.
+  5.  Provide a brief reasoning for your calculation, explicitly mentioning how PTO was handled.
   
-  Gross Pay: {{{grossPay}}}
-  State: {{{location}}}
+  **Employee Details:**
+  - Gross Pay from Hours Worked: {{{grossPayFromHours}}}
+  - PTO Hours: {{{ptoHours}}}
+  - Hourly Rate: {{{hourlyRate}}}
+  - Location: {{{location}}}
+  - Pay Frequency: {{{payFrequency}}}
+  - YTD Gross: {{{yearToDateGross}}}
+  - Filing Status: {{{filingStatus}}}
+  - Multiple Jobs?: {{{isMultipleJobsChecked}}}
+  - W-4 Step 3 (Dependents): {{{dependentsAmount}}}
+  - W-4 Step 4a (Other Income): {{{otherIncome}}}
+  - W-4 Step 4b (Deductions): {{{otherDeductions}}}
+  - W-4 Step 4c (Extra Withholding): {{{extraWithholding}}}
+  - Pre-Tax Deductions (Health Ins, etc.): {{{preTaxDeductions}}}
   
   Return the full breakdown in the required JSON format.
   `,
@@ -95,6 +185,8 @@ const calculatePayStubFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
+    // The prompt now handles the entire calculation by using the tool,
+    // so we can just return its output directly.
     return output!;
   }
 );

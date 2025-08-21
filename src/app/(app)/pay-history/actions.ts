@@ -9,7 +9,9 @@ const CalculatePayStubOutputSchema = z.object({
   deductions: z.object({
     federal: z.number(),
     state: z.number(),
-    fica: z.number(),
+    socialSecurity: z.number(),
+    medicare: z.number(),
+    preTax: z.number(),
     total: z.number(),
   }),
   netPay: z.number(),
@@ -29,7 +31,7 @@ export async function calculatePayStubAction(input: CalculatePayStubInput): Prom
     const result = await calculatePayStub(input);
     const parsed = CalculatePayStubOutputSchema.safeParse(result);
     if (!parsed.success) {
-      console.error(parsed.error);
+      console.error("AI Response Validation Error:", parsed.error.flatten());
       return { error: 'The AI returned an invalid response format. Please try again.' };
     }
     return { data: parsed.data };
@@ -38,5 +40,3 @@ export async function calculatePayStubAction(input: CalculatePayStubInput): Prom
     return { error: 'An unexpected error occurred. Please check the server logs.' };
   }
 }
-
-    
