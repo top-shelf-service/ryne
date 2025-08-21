@@ -25,16 +25,30 @@ function loadServiceAccount(): Record<string, any> {
 }
 
 let app: admin.app.App;
-if (!admin.apps.length) {
-  const creds = loadServiceAccount();
-  app = admin.initializeApp({
-    credential: admin.credential.cert(creds),
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || undefined,
-  });
+let auth: admin.auth.Auth;
+let db: admin.firestore.Firestore;
+let storage: admin.storage.Storage;
+
+// Skip Firebase initialization in CI environment
+if (process.env.NODE_ENV === 'ci') {
+  // Create mock exports for CI
+  auth = {} as any;
+  db = {} as any;
+  storage = {} as any;
 } else {
-  app = admin.app();
+  if (!admin.apps.length) {
+    const creds = loadServiceAccount();
+    app = admin.initializeApp({
+      credential: admin.credential.cert(creds),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || undefined,
+    });
+  } else {
+    app = admin.app();
+  }
+
+  auth = admin.auth(app);
+  db = admin.firestore(app);
+  storage = admin.storage(app);
 }
 
-export const auth = admin.auth(app);
-export const db = admin.firestore(app);
-export const storage = admin.storage(app);
+export { auth, db, storage };
