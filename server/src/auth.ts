@@ -1,16 +1,18 @@
 // server/src/auth.ts
-import { Request, Response, NextFunction } from 'express';
-import { auth } from './firebase.js';
+import { NextFunction, Request, Response } from 'express';
+import { auth as adminAuth } from './firebase.js';
 
-export async function verifyFirebaseToken(req: Request & { uid?: string }, res: Response, next: NextFunction) {
-  const h = req.header('authorization') || req.header('Authorization') || '';
-  const m = h.match(/^Bearer\s+(.+)$/i);
-  if (!m) return res.status(401).json({ error: 'Missing Bearer token' });
+export async function verifyFirebaseToken(req: Request & any, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'missing Authorization: Bearer <token>' });
+
   try {
-    const decoded = await auth.verifyIdToken(m[1]);
+    const decoded = await adminAuth.verifyIdToken(token);
     req.uid = decoded.uid;
+    req.user = decoded; // includes .email, .email_verified if present
     return next();
-  } catch (e: any) {
-    return res.status(401).json({ error: 'Invalid token' });
+  } catch {
+    return res.status(401).json({ error: 'invalid token' });
   }
 }

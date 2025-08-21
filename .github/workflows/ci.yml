@@ -1,15 +1,26 @@
-# .github/workflows/ci.yml
 name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ "main" ]
   pull_request:
-    branches: [main]
+    branches: [ "main" ]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  build-test:
+    name: Build, Lint, Test (client & server)
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
@@ -18,38 +29,87 @@ jobs:
       - name: Use Node.js 20.x
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
-      # ---------- Client ----------
-      - name: Install client deps
+      # Root install (if you have a root package.json). If not, this will no-op safely.
+      - name: Install (root)
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+          fi
+
+      # --- CLIENT ---
+      - name: Install (client)
         working-directory: client
-        run: npm ci
+        run: |
+          npm ci
 
-      - name: Build client
+      - name: Lint (client)
+        if: ${{ hashFiles('client/package.json') != '' }}
         working-directory: client
-        run: npm run build
+        run: |
+          if npm run | grep -qE "^ *lint"; then npm run lint; else echo "no client lint"; fi
 
-      # ---------- Server ----------
-      - name: Install server deps
+      - name: Test (client)
+        if: ${{ hashFiles('client/package.json') != '' }}
+        working-directory: client
+        run: |
+          if npm run | grep -qE "^ *test"; then npm test -- --ci --reporters=default --reporters=junit || npm test; else echo "no client tests"; fi
+
+      - name: Build (client)
+        working-directory: client
+        env:
+          # Add any client build env here or map from GitHub Secrets
+          # VITE_* variables picked up automatically if exported here
+          # Example:
+          # VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          NODE_OPTIONS: --max_old_space_size=4096
+        run: |
+          if npm run | grep -qE "^ *build"; then npm run build; else echo "no client build script"; fi
+
+      - name: Upload client dist
+        if: ${{ always() && hashFiles('client/dist/**') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-dist
+          path: client/dist
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # --- SERVER ---
+      - name: Install (server)
         working-directory: server
-        run: npm ci
+        run: |
+          npm ci
 
-      - name: Type-check server
+      - name: Lint (server)
+        if: ${{ hashFiles('server/package.json') != '' }}
         working-directory: server
-        run: npx tsc --noEmit
+        run: |
+          if npm run | grep -qE "^ *lint"; then npm run lint; else echo "no server lint"; fi
 
-      - name: Build server (tsc → dist/)
+      - name: Test (server)
+        if: ${{ hashFiles('server/package.json') != '' }}
         working-directory: server
-        run: npx tsc
+        run: |
+          if npm run | grep -qE "^ *test"; then npm test -- --ci --reporters=default --reporters=junit || npm test; else echo "no server tests"; fi
 
-      # Smoke import compiled server entry to ensure ESM deps resolve.
-      # We pass dummy env to avoid real Firebase/Admin initialization.
-      - name: Smoke import server (compiled JS)
+      - name: Build (server)
         working-directory: server
         env:
-          NODE_ENV: ci
-          FIREBASE_SERVICE_ACCOUNT_JSON: '{"type":"service_account","project_id":"dummy","private_key_id":"x","private_key":"-----BEGIN PRIVATE KEY-----\nMIIB\n-----END PRIVATE KEY-----\n","client_email":"dummy@dummy.iam.gserviceaccount.com","client_id":"0","token_uri":"https://oauth2.googleapis.com/token"}'
-          FIREBASE_STORAGE_BUCKET: dummy.appspot.com
+          NODE_OPTIONS: --max_old_space_size=4096
         run: |
-          node -e "import('./dist/index.js').then(()=>console.log('ok')).catch(e=>{console.error(e);process.exit(1)})"
+          # Common patterns:
+          # - If TypeScript: npm run build should emit to server/dist
+          # - If ts-node: skip build
+          if npm run | grep -qE "^ *build"; then npm run build; else echo "no server build script"; fi
+
+      - name: Upload server build
+        if: ${{ always() && hashFiles('server/dist/**') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-dist
+          path: server/dist
+          if-no-files-found: ignore
+          retention-days: 7

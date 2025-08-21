@@ -39,3 +39,12 @@ server/sa.json
 *.env
 *.env.* 
 *.pem *.p8 *.key *.jks
+
+# Environment files
+.env
+.env.*
+!.env.sample
+
+# Service account keys
+sa.json
+*.b64

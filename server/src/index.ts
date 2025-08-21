@@ -1,39 +1,36 @@
-// server/src/index.ts (additions highlighted)
-import 'dotenv/config'
-import express from 'express'
-import cors from 'cors'
-import { auth, db } from './firebase.js'
-import { Parser } from 'json2csv'
-import { buildOrgRouter } from './routes/orgs.js' // <-- add
+// server/src/index.ts
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import { db } from './firebase.js';
+import { verifyFirebaseToken } from './auth.js';
+import { onboardingRouter } from './onboarding.js';
 
-const app = express()
-app.use(express.json())
+const app = express();
+app.use(express.json());
 
-const corsOrigin = process.env.CORS_ORIGIN?.split(',').map(s => s.trim()) ?? ['http://localhost:5173']
-app.use(cors({ origin: corsOrigin, credentials: true }))
+const corsOrigin = process.env.CORS_ORIGIN?.split(',').map(s => s.trim()) ?? ['http://localhost:5173'];
+app.use(cors({ origin: corsOrigin, credentials: true }));
 
-// Verify Firebase ID token middleware (attach uid + decoded to req)
-async function verifyFirebaseToken(req: any, res: any, next: any) {
-  const authHeader = req.headers.authorization || ''
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
-  if (!token) return res.status(401).json({ error: 'missing Authorization: Bearer <token>' })
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
+// Who am I (org + role)
+app.get('/api/me', verifyFirebaseToken, async (req: any, res) => {
   try {
-    const decoded = await auth.verifyIdToken(token)
-    req.uid = decoded.uid
-    req.user = decoded
-    next()
-  } catch {
-    return res.status(401).json({ error: 'invalid token' })
+    const uid = req.uid as string;
+    const snap = await db.collection('users').doc(uid).get();
+    if (!snap.exists) return res.status(404).json({ error: 'user_not_initialized' });
+    const data = snap.data() || {};
+    const { orgId = null, role = null, status = null, email = null } = data as any;
+    return res.json({ uid, email, orgId, role, status });
+  } catch (e) {
+    console.error('me error', e);
+    return res.status(500).json({ error: 'internal' });
   }
-}
+});
 
-app.get('/api/health', (_, res) => res.json({ ok: true }))
+// Mount onboarding routes under /api
+app.use('/api', onboardingRouter(verifyFirebaseToken));
 
-// === mount org routes ===
-app.use('/api/orgs', buildOrgRouter(verifyFirebaseToken))
-
-// (existing routes) /api/me, /api/export/timesheets.csv, /api/admin/assignRole ...
-// ... keep the rest of your file as-is
-
-const port = process.env.PORT || 8080
-app.listen(port, () => console.log(`API listening on :${port}`))
+const port = process.env.PORT || 8080;
+app.listen(port, () => console.log(`API listening on :${port}`));

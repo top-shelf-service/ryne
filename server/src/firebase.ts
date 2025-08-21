@@ -1,7 +1,10 @@
 // server/src/firebase.ts
+import 'dotenv/config';                 // <— ensure .env is loaded even if this runs first
 import admin from 'firebase-admin';
 
-function loadServiceAccount(): Record<string, any> {
+type ServiceAccount = Record<string, any>;
+
+function loadServiceAccount(): ServiceAccount {
   // Prefer base64 (safer for quoting); fall back to raw JSON string
   const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
@@ -10,7 +13,7 @@ function loadServiceAccount(): Record<string, any> {
     try {
       const json = Buffer.from(b64, 'base64').toString('utf8');
       return JSON.parse(json);
-    } catch (e) {
+    } catch {
       throw new Error('FIREBASE_SERVICE_ACCOUNT_B64 is set but invalid (base64 or JSON parse failed).');
     }
   }

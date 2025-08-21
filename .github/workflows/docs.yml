@@ -1,3 +1,4 @@
+# .github/workflows/docs.yml
 name: CI + Docs
 
 on:
@@ -17,48 +18,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node
+      - name: Use Node.js 20.x
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      # --- Client build sanity ---
-      - name: Install client deps
-        working-directory: client
+      # Install root dependencies (required for workspace commands and docs generation)
+      - name: Install root dependencies
         run: npm ci
 
-      - name: Build client
-        working-directory: client
-        run: npm run build
+      # ---------- Web App Build Verification ----------
+      # Build web app as a sanity check to ensure the build process works before generating docs
+      - name: Install web app dependencies
+        run: npm --workspace=@ryne/web ci
 
-      # --- Server typecheck ---
-      - name: Install server deps
-        working-directory: server
-        run: npm ci
+      - name: Build web app (sanity check)
+        run: npm --workspace=@ryne/web run build
 
-      # FIX: Install missing type definitions for the 'cors' package
-      - name: Install server type definitions
-        working-directory: server
-        run: npm install @types/cors
+      # ---------- API Type Checking ----------
+      # Ensure API code is type-safe before generating documentation
+      - name: Install API dependencies
+        run: npm --workspace=@ryne/api ci
 
-      - name: Type-check server
-        working-directory: server
-        run: npx tsc --noEmit
+      # Install missing type definitions required for proper TypeScript compilation
+      - name: Install API type definitions
+        run: npm --workspace=@ryne/api install @types/cors
 
-      # --- Docs generation ---
-      - name: Install root dev deps
-        run: npm ci
+      - name: Type-check API
+        run: npm --workspace=@ryne/api exec tsc -- --noEmit
 
-      - name: Build docs (Typedoc + Redoc)
+      # ---------- Documentation Generation ----------
+      # Generate TypeDoc documentation for both web and API codebases
+      # Generate OpenAPI/Redoc documentation from openapi.yaml
+      # Create unified documentation site with index page
+      - name: Build comprehensive documentation
         run: npm run docs
 
-      # --- Publish docs to GitHub Pages (only on push to main) ---
-      - name: Setup Pages
+      # ---------- GitHub Pages Deployment ----------
+      # Only deploy documentation on pushes to main branch (not on PRs)
+      - name: Setup GitHub Pages
         if: github.event_name == 'push'
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact
+      - name: Upload documentation artifact
         if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:

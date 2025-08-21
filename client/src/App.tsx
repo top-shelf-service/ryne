@@ -1,2 +1,4 @@
-import AppRoutes from './routes';
-export default function App(){ return <AppRoutes/> }
+import DevProbe from './dev/DevProbe';
+export default function App() {
+  return <DevProbe />;
+}
