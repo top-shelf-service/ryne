@@ -2,8 +2,8 @@
   "name": "shyft",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "dev:mock": "ONBOARDING_DEV_MOCK=1 next dev --turbopack",
+    "dev": "next dev",
+    "dev:mock": "ONBOARDING_DEV_MOCK=1 next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
