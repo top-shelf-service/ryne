@@ -1,59 +1,84 @@
-# --- Node / Next ---
+# dependencies
 node_modules/
-.npm/
+
+# Next.js
 .next/
 out/
-dist/
-coverage/
-npm-debug.log*
-yarn-error.log*
+.vercel/
 
-# --- Env & secrets (DO NOT COMMIT) ---
+# builds & caches
+dist/
+build/
+coverage/
+*.log
+
+# env files
 .env
 .env.*
 !.env.example
-*.pem
-*.p12
-*.pfx
-*.keystore
-*.crt
-*.key
-*.ks
-*.jks
-*serviceAccount*.json
-*service-account*.json
-new-key.json
-sa.json
+# dependencies
+node_modules/
 
-# Firebase / GCP local state
-.firebase/
-.firebaserc.local
-*.runtimeconfig.json
+# Next.js
+.next/
+out/
+.vercel/
 
-# Tool configs that may contain tokens
-.npmrc
-.yarnrc
-.pnpmrc
-.wrangler/
-.netrc
+# builds & caches
+dist/
+build/
+coverage/
+*.log
 
-# IDE / OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
+# env files
+.env
+.env.*
+!.env.example
+# dependencies
+node_modules/
 
-# Archives & large dump files
-*.zip
-shyft_fb_8-23.zip
+# Next.js
+.next/
+out/
+.vercel/
 
-# Optional: GitHub Codespaces, editors
-*.swp
-*.swo
+# builds & caches
+dist/
+build/
+coverage/
+*.log
 
-# Firebase logs
-firebase-debug.log
-firestore-debug.log
+# env files
+.env
+.env.*
+!.env.example
+# --- Dependencies / builds ---
+node_modules/
+dist/
+build/
+coverage/
+*.log
 
-# secret/sanitize backups (never commit these)
+# --- Next.js ---
+.next/
+out/
+.vercel/
+
+# --- Python venv you have in ./main ---
+main/
+
+# --- Project-specific generated artifacts ---
+public/sw.js
+public/workbox-*.js
+
+# --- Secrets & env ---
+.env
+.env.*
+!.env.example
 secrets/
+type:REDACTED
+new-key.json
+REDACTED_*
+
+# keep example templates tracked under secrets if needed
+!secrets/**/.env.example
