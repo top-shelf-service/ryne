@@ -54,3 +54,6 @@ shyft_fb_8-23.zip
 # Firebase logs
 firebase-debug.log
 firestore-debug.log
+
+# secret/sanitize backups (never commit these)
+secrets/
