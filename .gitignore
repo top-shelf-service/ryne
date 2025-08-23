@@ -1,45 +1,59 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+# --- Node / Next ---
+node_modules/
+.npm/
+.next/
+out/
+dist/
+coverage/
 npm-debug.log*
-yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# vercel
-.vercel
+# --- Env & secrets (DO NOT COMMIT) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.keystore
+*.crt
+*.key
+*.ks
+*.jks
+*serviceAccount*.json
+*service-account*.json
+new-key.json
+sa.json
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Firebase / GCP local state
+.firebase/
+.firebaserc.local
+*.runtimeconfig.json
 
-.genkit/*
-.env*
+# Tool configs that may contain tokens
+.npmrc
+.yarnrc
+.pnpmrc
+.wrangler/
+.netrc
 
-# firebase
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Archives & large dump files
+*.zip
+shyft_fb_8-23.zip
+
+# Optional: GitHub Codespaces, editors
+*.swp
+*.swo
+
+# Firebase logs
 firebase-debug.log
 firestore-debug.log
+
+# secret/sanitize backups (never commit these)
+secrets/
