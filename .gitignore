@@ -50,3 +50,7 @@ shyft_fb_8-23.zip
 # Optional: GitHub Codespaces, editors
 *.swp
 *.swo
+
+# Firebase logs
+firebase-debug.log
+firestore-debug.log
