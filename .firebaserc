@@ -1,5 +1,3 @@
 {
-  "projects": {
-    "default": "shyft-xphli"
-  }
+  "projects": { "default": "YOUR_GCP_PROJECT_ID" }
 }
