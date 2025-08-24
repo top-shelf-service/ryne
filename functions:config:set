@@ -1,0 +1,2 @@
+const functions = require("firebase-functions");
+const geminiKey = functions.config().gemini.api_key;

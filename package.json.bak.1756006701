@@ -1,11 +1,12 @@
+// package.json
 {
   "name": "ryne",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Shyft/RYNE – baseline with secret rotation and CI hooks",
+  "description": "Shyft/RYNE – PWA + secret rotation, sync, and auto-redaction",
   "scripts": {
-    "build": "node scripts/fake-build.cjs",
+    "prepare": "husky install",
     "rotate:secrets": "tsx scripts/rotate-secrets.ts",
     "rotate:firebase:sa": "bash scripts/rotate-firebase-sa.sh",
     "sync:wrangler": "bash scripts/sync-cloudflare-wrangler.sh",
