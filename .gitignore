@@ -14,3 +14,11 @@
 *.log
 .env
 .env.local
+
+# .gitignore
+.env
+.env.*
+sa.new.json
+node_modules
+dist
+
