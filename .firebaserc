@@ -1,3 +1,9 @@
 {
+<<<<<<< HEAD
   "projects": { "default": "shyft-xphli" }
+=======
+  "projects": {
+    "default": "shyft-xphli"
+  }
+>>>>>>> main
 }
