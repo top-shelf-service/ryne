@@ -1,0 +1,60 @@
+"use server";
+
+import { FIRST_TIME_FLOW, type OnboardingStep } from "@/config/onboarding";
+import { computeEtag, getCachedState, setCachedState, loadOnboardingSnapshot } from "@/lib/onboarding/state";
+
+function get(ctx: any, path: string) {
+  return path.split(".").reduce((o:any,k)=> (o ? o[k] : undefined), ctx);
+}
+
+function evaluate(flow: OnboardingStep[], snapshot: Record<string, any>) {
+  // Walk steps sequentially until a requirement fails, then return that step as next
+  let stepIndex = 0;
+  while (stepIndex < flow.length) {
+    const step = flow[stepIndex];
+    for (const req of step.requirements) {
+      const val = get(snapshot, req.key);
+      if (req.required) {
+        if (val === undefined || val === null) return { complete:false, nextStep:step.step };
+        if (req.validator && !req.validator(val)) return { complete:false, nextStep:step.step };
+      }
+    }
+    // Compute next
+    if (typeof step.next === "function") {
+      const nextKey = step.next(snapshot);
+      const idx = flow.findIndex(s => s.step === nextKey);
+      if (idx === -1) return { complete:false, nextStep:step.step };
+      stepIndex = idx;
+    } else {
+      const nextKey = step.next;
+      const idx = flow.findIndex(s => s.step === nextKey);
+      if (idx === -1) return { complete:false, nextStep:step.step };
+      // If we just reached "done", we are complete
+      if (nextKey === "done" && step.step === "i9AndDocs") {
+        return { complete: true };
+      }
+      stepIndex = idx;
+    }
+    // Prevent infinite loop if "done" maps to itself
+    if (flow[stepIndex].step === "done") return { complete: true };
+    // To progress, the next step must also be satisfied; loop continues
+  }
+  return { complete: false, nextStep: "account" };
+}
+
+export async function getOnboardingGate(userId: string, orgId?: string) {
+  // Fast accept for cached "complete"
+  const cached = await getCachedState(userId, orgId ?? "-");
+  if (cached?.complete) return cached;
+
+  // Load authoritative snapshot (merge org + user docs)
+  const snapshot = await loadOnboardingSnapshot(userId, orgId ?? "-");
+
+  // Evaluate minimal first-time flow (fork -> converge at I-9)
+  const result = evaluate(FIRST_TIME_FLOW, snapshot);
+  const etag = computeEtag(snapshot);
+  const state = { complete: result.complete, nextStep: result.nextStep, etag, updatedAt: Date.now() };
+
+  await setCachedState(userId, orgId ?? "-", state);
+  return state;
+}

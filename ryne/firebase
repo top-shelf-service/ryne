@@ -1,0 +1,7 @@
+      - name: Set Firebase Functions config
+        run: |
+          firebase functions:config:set \
+            gemini.api_key="${{ secrets.GEMINI_API_KEY }}" \
+            jwt.secret="${{ secrets.JWT_SECRET }}" \
+            session.secret="${{ secrets.SESSION_SECRET }}" \
+            nextauth.secret="${{ secrets.NEXTAUTH_SECRET }}"
