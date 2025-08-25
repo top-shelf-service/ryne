@@ -1,0 +1,147 @@
+# .github/workflows/fbs.yml
+name: FBS Deploy (Hosting: PR previews + norris to live)
+
+on:
+  pull_request:
+    branches: ["norris"]
+  push:
+    branches: ["norris"]
+  workflow_dispatch:
+
+jobs:
+  preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Decode service account (base64) to file
+        run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}" | base64 -d > "$RUNNER_TEMP/sa.json"
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Authenticate
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json"
+          gcloud config set project "${GCP_PROJECT_ID}"
+
+      - name: Install Firebase CLI + jq
+        run: |
+          npm i -g firebase-tools@latest
+          sudo apt-get update -y && sudo apt-get install -y jq
+
+      - name: Deploy preview channel and capture URL
+        id: preview
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+        run: |
+          CHANNEL="pr-${PR_NUM}"
+          # Create/update preview channel
+          firebase hosting:channel:deploy "$CHANNEL" --expires 7d --project "${GCP_PROJECT_ID}"
+
+          # Get the URL reliably. The CLI prints urls; capture with grep.
+          URL=$(firebase hosting:channel:open "$CHANNEL" --project "${GCP_PROJECT_ID}" --non-interactive 2>/dev/null | grep -Eo 'https?://[^ ]+')
+          if [ -z "$URL" ]; then
+            # Fallback: list channels as JSON and pick our channel’s first URL
+            JSON=$(firebase hosting:channel:list --project "${GCP_PROJECT_ID}" --json || echo '{}')
+            URL=$(echo "$JSON" | jq -r ".result[] | select(.name | test(\"/channels/${CHANNEL}$\")) | .urls[0]" 2>/dev/null)
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Write summary
+        run: |
+          echo "### ✅ Firebase Preview Deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Channel:** pr-${{ github.event.pull_request.number }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **URL:** ${{ steps.preview.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment Preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = core.getInput('url', { required: true });
+            const body = `🧪 **Firebase Preview** for this PR:\n\n- URL: ${url}\n- Channel: pr-${{ github.event.pull_request.number }}\n\n_(auto-updated on each push)_`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body
+            });
+          result-encoding: string
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          url: ${{ steps.preview.outputs.url }}
+
+  deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Decode service account (base64) to file
+        run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}" | base64 -d > "$RUNNER_TEMP/sa.json"
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Authenticate
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json"
+          gcloud config set project "${GCP_PROJECT_ID}"
+
+      - name: Install Firebase CLI
+        run: npm i -g firebase-tools@latest
+
+      - name: Deploy to live and capture URL
+        id: live
+        run: |
+          firebase deploy --only hosting --project "${GCP_PROJECT_ID}" --non-interactive --force
+          # The CLI prints Hosting URL; capture the last https:// line
+          URL=$(firebase hosting:sites:list --project "${GCP_PROJECT_ID}" --json | jq -r '.result[0].defaultUrl' 2>/dev/null)
+          if [ -z "$URL" ]; then
+            URL=$(firebase apps:sdkconfig web --project "${GCP_PROJECT_ID}" 2>/dev/null | grep -Eo 'https?://[^"]*web.app' | head -n1)
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Write summary
+        run: |
+          echo "### 🚀 Firebase Live Deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **URL:** ${{ steps.live.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"

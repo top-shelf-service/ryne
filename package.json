@@ -1,8 +1,40 @@
 {
+<<<<<<< HEAD
+  "name": "ryne",
+  "version": "1.0.0",
+=======
   "name": "shyft",
   "version": "0.1.0",
+>>>>>>> main
   "private": true,
+  "type": "module",
+  "description": "Shyft/RYNE – baseline with secret rotation and CI hooks",
   "scripts": {
+<<<<<<< HEAD
+    "build": "node scripts/fake-build.cjs",
+    "rotate:secrets": "tsx scripts/rotate-secrets.ts",
+    "rotate:firebase:sa": "bash scripts/rotate-firebase-sa.sh",
+    "sync:wrangler": "bash scripts/sync-cloudflare-wrangler.sh",
+    "sync:github": "bash scripts/sync-github-secrets.sh",
+    "postrotate": "node scripts/post-rotation-notes.cjs",
+    "test:secrets:local": "node scripts/test-local-secrets.cjs",
+    "scan:repo": "bash scripts/scan-for-secrets.sh .",
+    "verify:build": "bash scripts/verify-no-secrets-in-build.sh dist"
+  },
+  "devDependencies": {
+    "@types/node": "22.7.4",
+    "husky": "9.1.6",
+    "istextorbinary": "9.5.0",
+    "tsx": "4.19.2",
+    "zod": "3.23.8",
+    "dotenv": "16.4.5"
+  },
+  "dependencies": {
+    "dotenv": "16.4.5"
+  },
+  "engines": {
+    "node": ">=20.10"
+=======
     "dev": "next dev --turbopack",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
@@ -54,5 +86,6 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+>>>>>>> main
   }
 }

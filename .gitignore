@@ -1,3 +1,29 @@
+<<<<<<< HEAD
+# Dependencies
+/node_modules
+
+# Next.js build output
+/.next/
+
+# Python virtual environments
+/venv/
+/env/
+/.venv/
+/__pycache__/
+
+# Log files and environment variables
+*.log
+.env
+.env.local
+
+# .gitignore
+.env
+.env.*
+sa.new.json
+node_modules
+dist
+
+=======
 # --- Node / Next ---
 node_modules/
 .npm/
@@ -57,3 +83,4 @@ firestore-debug.log
 
 # secret/sanitize backups (never commit these)
 secrets/
+>>>>>>> main

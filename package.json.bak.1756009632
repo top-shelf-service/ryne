@@ -1,0 +1,43 @@
+// package.json
+{
+  "name": "ryne",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shyft/RYNE – Vite + React + Firebase baseline with secret rotation and CI hooks",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "rotate:secrets": "tsx scripts/rotate-secrets.ts",
+    "rotate:firebase:sa": "bash scripts/rotate-firebase-sa.sh",
+    "sync:wrangler": "bash scripts/sync-cloudflare-wrangler.sh",
+    "sync:github": "bash scripts/sync-github-secrets.sh",
+    "postrotate": "node scripts/post-rotation-notes.cjs",
+    "test:secrets:local": "node scripts/test-local-secrets.cjs",
+    "scan:repo": "bash scripts/scan-for-secrets.sh .",
+    "verify:build": "bash scripts/verify-no-secrets-in-build.sh dist"
+  },
+  "devDependencies": {
+    "@types/node": "22.7.4",
+    "@types/react": "18.3.5",
+    "@types/react-dom": "18.3.0",
+    "dotenv": "16.4.5",
+    "husky": "9.1.6",
+    "istextorbinary": "9.5.0",
+    "typescript": "5.5.4",
+    "tsx": "4.19.2",
+    "vite": "5.4.3",
+    "vite-plugin-pwa": "0.20.5",
+    "zod": "3.23.8"
+  },
+  "dependencies": {
+    "firebase": "10.12.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.26.2"
+  },
+  "engines": {
+    "node": ">=20.10"
+  }
+}

@@ -1,4 +1,10 @@
 {
+<<<<<<< HEAD
+  "hosting": {
+    "public": "dist",
+    "ignore": ["**/.*", "**/node_modules/**"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }]
+=======
   "emulators": {
     "apphosting": {
       "port": 5002,
@@ -24,5 +30,6 @@
   },
   "storage": {
     "rules": "storage.rules"
+>>>>>>> main
   }
 }

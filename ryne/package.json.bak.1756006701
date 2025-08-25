@@ -1,0 +1,33 @@
+// package.json
+{
+  "name": "ryne",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shyft/RYNE – PWA + secret rotation, sync, and auto-redaction",
+  "scripts": {
+    "prepare": "husky install",
+    "rotate:secrets": "tsx scripts/rotate-secrets.ts",
+    "rotate:firebase:sa": "bash scripts/rotate-firebase-sa.sh",
+    "sync:wrangler": "bash scripts/sync-cloudflare-wrangler.sh",
+    "sync:github": "bash scripts/sync-github-secrets.sh",
+    "postrotate": "node scripts/post-rotation-notes.cjs",
+    "test:secrets:local": "node scripts/test-local-secrets.cjs",
+    "scan:repo": "bash scripts/scan-for-secrets.sh .",
+    "verify:build": "bash scripts/verify-no-secrets-in-build.sh dist"
+  },
+  "devDependencies": {
+    "@types/node": "22.7.4",
+    "husky": "9.1.6",
+    "istextorbinary": "9.5.0",
+    "tsx": "4.19.2",
+    "zod": "3.23.8",
+    "dotenv": "16.4.5"
+  },
+  "dependencies": {
+    "dotenv": "16.4.5"
+  },
+  "engines": {
+    "node": ">=20.10"
+  }
+}

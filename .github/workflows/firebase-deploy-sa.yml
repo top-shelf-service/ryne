@@ -1,0 +1,27 @@
+name: Firebase Deploy (Service Account B64)
+on:
+  push:
+    branches: ["norris"]
+  workflow_dispatch:
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm ci
+      - run: npm run build
+      - run: echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}" | base64 -d > "$RUNNER_TEMP/sa.json"
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          install_components: 'beta'
+      - run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json"
+          gcloud config set project "${GCP_PROJECT_ID}"
+      - run: npm install -g firebase-tools@latest
+      - run: firebase deploy --only hosting --project "${GCP_PROJECT_ID}" --non-interactive --force

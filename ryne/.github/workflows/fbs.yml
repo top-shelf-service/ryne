@@ -1,0 +1,96 @@
+# .github/workflows/fbs.yml
+name: FBS Deploy (Hosting: PR previews + norris to live)
+
+on:
+  pull_request:
+    branches: ["norris"]
+  push:
+    branches: ["norris"]
+  workflow_dispatch:
+
+jobs:
+  preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Decode service account (base64) to file
+        run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}" | base64 -d > "$RUNNER_TEMP/sa.json"
+          ls -l "$RUNNER_TEMP/sa.json"
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Authenticate
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json"
+          gcloud config set project "${GCP_PROJECT_ID}"
+
+      - name: Install Firebase CLI
+        run: npm i -g firebase-tools@latest
+
+      - name: Deploy preview channel
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+        run: |
+          CHANNEL="pr-${PR_NUM}"
+          # Expires in 7 days; adjust as needed
+          firebase hosting:channel:deploy "$CHANNEL" --expires 7d --project "${GCP_PROJECT_ID}"
+          echo "Preview URL(s):"
+          firebase hosting:channel:open "$CHANNEL" --project "${GCP_PROJECT_ID}" --non-interactive || true
+
+  deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Decode service account (base64) to file
+        run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}" | base64 -d > "$RUNNER_TEMP/sa.json"
+          ls -l "$RUNNER_TEMP/sa.json"
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Authenticate
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json"
+          gcloud config set project "${GCP_PROJECT_ID}"
+
+      - name: Install Firebase CLI
+        run: npm i -g firebase-tools@latest
+
+      - name: Deploy to live
+        run: |
+          firebase deploy --only hosting --project "${GCP_PROJECT_ID}" --non-interactive --force
